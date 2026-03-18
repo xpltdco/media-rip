@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node C:/Users/jlightner/.claude/get-shit-done/bin/gsd-tools.cjs commit \"docs: initialize project\" --files .planning/PROJECT.md)",
+      "WebSearch",
+      "WebFetch(domain:pypi.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:noted.lol)",
+      "WebFetch(domain:yt-dlp.eknerd.com)",
+      "WebFetch(domain:gist.github.com)"
+    ]
+  }
+}
