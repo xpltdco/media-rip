@@ -59,10 +59,10 @@ This milestone is complete only when all are true:
 
 ## Slices
 
-- [ ] **S01: Foundation + Download Engine** `risk:high` `depends:[]`
+- [x] **S01: Foundation + Download Engine** `risk:high` `depends:[]`
   > After this: POST a URL to the API → yt-dlp downloads it to /downloads with progress events arriving in an asyncio.Queue. Format probe returns available qualities. Config loads from YAML + env vars. SQLite with WAL mode stores jobs. Proven via API tests and a real yt-dlp download.
 
-- [ ] **S02: SSE Transport + Session System** `risk:high` `depends:[S01]`
+- [x] **S02: SSE Transport + Session System** `risk:high` `depends:[S01]`
   > After this: Open two browser tabs → each gets its own SSE stream scoped to their session cookie. Live progress events flow from yt-dlp worker threads through SSEBroker to the correct session's EventSource. Refresh a tab → SSE replays current state. Health endpoint responds. Proven via real SSE connections and session isolation test.
 
 - [ ] **S03: Frontend Core** `risk:medium` `depends:[S02]`

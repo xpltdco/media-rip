@@ -65,7 +65,7 @@ All three module test suites pass, plus the T01 model tests — 47/47 total:
 | 1 | `cd backend && python -m pytest tests/test_config.py -v` | 0 | ✅ pass | 0.22s |
 | 2 | `cd backend && python -m pytest tests/test_database.py -v` | 0 | ✅ pass | 0.19s |
 | 3 | `cd backend && python -m pytest tests/test_sse_broker.py -v` | 0 | ✅ pass | 0.23s |
-| 4 | `cd backend && python -m pytest tests/ -v` | 0 | ✅ pass | 0.42s |
+| 4 | `cd backend && python -m pytest tests/ -v` | 0 | ✅ pass | 0.43s |
 
 Slice-level checks (partial — T02 is not the final task):
 | # | Command | Exit Code | Verdict | Notes |

@@ -25,15 +25,15 @@
 
 ## Verification
 
-All tests run from `backend/`:
+All tests run from `backend/` using the venv Python (system Python is 3.14, project requires 3.12):
 
-- `cd backend && python -m pytest tests/test_models.py -v` — model construction, `ProgressEvent.from_yt_dlp` normalization, edge cases
-- `cd backend && python -m pytest tests/test_config.py -v` — env var override, YAML loading, zero-config defaults
-- `cd backend && python -m pytest tests/test_database.py -v` — CRUD, WAL mode verification, concurrent writes
-- `cd backend && python -m pytest tests/test_sse_broker.py -v` — subscribe/unsubscribe, thread-safe publish
-- `cd backend && python -m pytest tests/test_download_service.py -v` — real yt-dlp download with progress events, format extraction
-- `cd backend && python -m pytest tests/test_api.py -v` — all four API endpoints via httpx AsyncClient
-- `cd backend && python -m pytest tests/ -v` — full suite green, 0 failures
+- `cd backend && .venv/Scripts/python -m pytest tests/test_models.py -v` — model construction, `ProgressEvent.from_yt_dlp` normalization, edge cases
+- `cd backend && .venv/Scripts/python -m pytest tests/test_config.py -v` — env var override, YAML loading, zero-config defaults
+- `cd backend && .venv/Scripts/python -m pytest tests/test_database.py -v` — CRUD, WAL mode verification, concurrent writes
+- `cd backend && .venv/Scripts/python -m pytest tests/test_sse_broker.py -v` — subscribe/unsubscribe, thread-safe publish
+- `cd backend && .venv/Scripts/python -m pytest tests/test_download_service.py -v` — real yt-dlp download with progress events, format extraction
+- `cd backend && .venv/Scripts/python -m pytest tests/test_api.py -v` — all four API endpoints via httpx AsyncClient
+- `cd backend && .venv/Scripts/python -m pytest tests/ -v` — full suite green, 0 failures
 - Verify `PRAGMA journal_mode` returns `wal` in database test
 - Verify progress events contain `status=downloading` with valid percent values in download service test
 
@@ -73,7 +73,7 @@ All tests run from `backend/`:
   - Verify: `cd backend && python -m pytest tests/test_download_service.py tests/test_output_template.py -v`
   - Done when: Real download test passes — file appears in output dir AND progress events with `status=downloading` were received in the broker queue. Format extraction returns non-empty list with `format_id` and `ext` fields. Output template resolves domain-specific and fallback templates correctly.
 
-- [ ] **T04: Wire API routes and FastAPI app factory** `est:45m`
+- [x] **T04: Wire API routes and FastAPI app factory** `est:45m`
   - Why: The API routes are the HTTP surface that S02 and S03 consume. The app factory lifespan wires database init/close and service construction. The stub session dependency provides `session_id` for testing until S02 delivers real middleware. This task proves the full vertical: HTTP request → router → service → yt-dlp → DB + SSE broker.
   - Files: `backend/app/main.py`, `backend/app/routers/downloads.py`, `backend/app/routers/formats.py`, `backend/app/routers/__init__.py`, `backend/app/dependencies.py`, `backend/tests/test_api.py`, `backend/tests/conftest.py`
   - Do: Create `app/dependencies.py` with stub `get_session_id` dependency (reads `X-Session-ID` header, falls back to a default UUID — clearly documented as S02-replaceable). Update `app/main.py` lifespan: init aiosqlite connection with WAL PRAGMAs, create schema, instantiate AppConfig + SSEBroker + DownloadService, store on `app.state`, close DB on shutdown. Mount download and format routers under `/api`. Build `POST /api/downloads` (accepts `JobCreate` body + session_id dep, delegates to `DownloadService.enqueue`, returns `Job`), `GET /api/downloads` (returns jobs for session from DB), `DELETE /api/downloads/{id}` (cancels job), `GET /api/formats?url=` (delegates to `DownloadService.get_formats`). Write API tests via `httpx.AsyncClient` + `ASGITransport`: POST valid URL → 200 + Job JSON, GET downloads → list, DELETE → 200, GET formats → format list, POST invalid URL → error response.
