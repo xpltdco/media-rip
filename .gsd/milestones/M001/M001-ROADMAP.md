@@ -65,7 +65,7 @@ This milestone is complete only when all are true:
 - [x] **S02: SSE Transport + Session System** `risk:high` `depends:[S01]`
   > After this: Open two browser tabs → each gets its own SSE stream scoped to their session cookie. Live progress events flow from yt-dlp worker threads through SSEBroker to the correct session's EventSource. Refresh a tab → SSE replays current state. Health endpoint responds. Proven via real SSE connections and session isolation test.
 
-- [ ] **S03: Frontend Core** `risk:medium` `depends:[S02]`
+- [x] **S03: Frontend Core** `risk:medium` `depends:[S02]`
   > After this: Full Vue 3 SPA in the browser: paste URL, pick format from live extraction, watch progress bar fill, see completed files in queue. Playlists show as collapsible parent/child rows. Mobile layout (375px) uses bottom tabs, card list, ≥44px targets. Desktop uses sidebar + table. Proven by loading the SPA and completing a download flow.
 
 - [ ] **S04: Admin, Auth + Supporting Features** `risk:medium` `depends:[S02]`
