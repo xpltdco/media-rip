@@ -2,17 +2,17 @@
   "schemaVersion": 1,
   "taskId": "T04",
   "unitId": "M001/S01/T04",
-  "timestamp": 1773806737968,
+  "timestamp": 1773806802430,
   "passed": false,
   "discoverySource": "task-plan",
   "checks": [
     {
       "command": "python -m pytest tests/test_api.py -v",
       "exitCode": 1,
-      "durationMs": 36,
+      "durationMs": 30,
       "verdict": "fail"
     }
   ],
-  "retryAttempt": 3,
+  "retryAttempt": 1,
   "maxRetries": 2
 }
