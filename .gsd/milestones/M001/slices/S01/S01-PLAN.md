@@ -59,7 +59,7 @@ All tests run from `backend/`:
   - Verify: `cd backend && pip install -e ".[dev]" && python -m pytest tests/test_models.py -v`
   - Done when: `pip install -e ".[dev]"` succeeds, all model tests pass, `from app.models.job import Job, JobStatus, ProgressEvent, JobCreate, FormatInfo` works
 
-- [ ] **T02: Build config system, database layer, and SSE broker** `est:1h`
+- [x] **T02: Build config system, database layer, and SSE broker** `est:1h`
   - Why: These three infrastructure modules are the foundation everything else depends on. Config provides settings to database and download service. Database stores all job state. SSE broker is the thread-safe event distribution mechanism. All three are pure infrastructure with well-defined interfaces.
   - Files: `backend/app/core/config.py`, `backend/app/core/database.py`, `backend/app/core/sse_broker.py`, `backend/tests/conftest.py`, `backend/tests/test_config.py`, `backend/tests/test_database.py`, `backend/tests/test_sse_broker.py`
   - Do: Build `AppConfig` via pydantic-settings with env prefix `MEDIARIP`, nested delimiter `__`, YAML source (handle missing file gracefully), and `settings_customise_sources` for priority ordering. Build database module with aiosqlite: singleton connection pattern for lifespan, WAL + busy_timeout + synchronous PRAGMAs first, schema creation (sessions, jobs, config, unsupported_urls tables with indexes), async CRUD functions. Build SSEBroker with per-session queue map, subscribe/unsubscribe, and `publish` using `loop.call_soon_threadsafe`. Create `conftest.py` with shared fixtures (temp DB, test config). Write tests: config env override + YAML + zero-config defaults; DB CRUD + WAL verification + concurrent write test; broker subscribe/publish-from-thread/unsubscribe.
