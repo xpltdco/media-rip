@@ -10,6 +10,19 @@ Not a MeTube fork. A ground-up rebuild that treats theming, session behavior, pu
 
 A user can paste any yt-dlp-supported URL, see exactly what they're about to download, and get it — without creating an account, without sending data anywhere, and without knowing what a terminal is.
 
+## Current Milestone: v1.0 Initial Release
+
+**Goal:** Ship a fully functional, self-hostable yt-dlp web frontend — downloads, session management, theming, admin auth, and Docker distribution.
+
+**Target features:**
+- Core download engine (URL detection, format selection, real-time progress)
+- Session system (cookie-based, isolated by default, export/import)
+- Theming (cyberpunk default, dark, light; drop-in custom themes)
+- Admin UI with basic login (Sonarr-style) and live config management
+- Health, observability, privacy controls
+- Docker distribution with CI/CD pipeline
+- Post-ship polish phase (defaults tuning)
+
 ## Requirements
 
 ### Validated
@@ -32,6 +45,8 @@ A user can paste any yt-dlp-supported URL, see exactly what they're about to dow
 - [ ] Session cookie (`mrip_session`) auto-created on first visit, 24hr TTL
 - [ ] Session persists across browser refresh and reconnects (SSE replays state on reconnect)
 - [ ] User can delete their own session and all associated data (downloads, logs, cookies)
+- [ ] User can export their session as a portable file (download history, queue state, preferences)
+- [ ] User can import a previously exported session to restore their download history — enables basic identity continuity on persistent instances
 - [ ] Cookie auth: user can upload a `cookies.txt` file (Netscape format) per-session for authenticated downloads (private/paywalled content)
 
 **Link Sharing**
@@ -42,15 +57,19 @@ A user can paste any yt-dlp-supported URL, see exactly what they're about to dow
 - [ ] Three built-in themes: cyberpunk (default), dark, light
 - [ ] Theme selection persisted in localStorage
 - [ ] Operators can drop theme directories into `/themes` volume — appears in picker without recompile
+- [ ] Theme file format is flat, well-commented, and human-readable — a single file per theme with clear variable names and inline docs so anyone (or an AI) can understand and modify it without prior CSS/frontend knowledge
+- [ ] Built-in themes serve as learning examples: heavily commented, covering every UI region, showing what each token controls
 - [ ] Responsive layout: desktop (sidebar + table) and mobile (bottom tabs + card list)
 - [ ] All touch targets minimum 44px on mobile
 
 **Admin & Configuration**
+- [ ] Admin login: username/password protected admin UI (like qBittorrent/Sonarr/Radarr) — no token-in-header, no raw config required; default credentials set at first boot with forced change prompt
+- [ ] Admin panel is the primary config surface — session mode, purge policy, filename templates, branding all configurable via UI without touching files
+- [ ] `config.yaml` mount still supported as override layer for operators who prefer infra-as-code / GitOps workflows
 - [ ] Operator can configure session mode: `isolated` (default) / `shared` / `open`
 - [ ] Operator can configure purge: `scheduled` / `manual` / `never`, with TTL for files and logs independently
 - [ ] Operator can configure output filename templates globally (source-aware: YouTube, SoundCloud, generic)
-- [ ] Operator can set `ADMIN_TOKEN` to protect admin routes
-- [ ] Admin panel: active sessions, storage usage, manual purge trigger, unsupported URL log download, sanitized config view
+- [ ] Admin panel: active sessions, storage usage, manual purge trigger, unsupported URL log download, live config editor
 - [ ] Branding overridable: name, tagline, logo
 
 **Health & Observability**
@@ -79,7 +98,7 @@ A user can paste any yt-dlp-supported URL, see exactly what they're about to dow
 ### Out of Scope
 
 - External API / arr-stack integration (Radarr/Sonarr-style programmatic use) — documented as future milestone, architecture should not block it
-- OAuth / user accounts — no identity system; sessions are anonymous by design
+- OAuth / user accounts — end-user sessions are anonymous by design; admin auth is basic username/password only, no SSO
 - Real-time chat or social features — not core
 - Video posts or re-hosting — media.rip downloads, does not transcode or re-serve content at scale
 - Mobile native app — web-first
@@ -92,6 +111,7 @@ A user can paste any yt-dlp-supported URL, see exactly what they're about to dow
 - yt-dlp used as library (`import yt_dlp`), not subprocess — gives fine-grained progress hooks and avoids shell injection
 - Session cookie approach chosen so users can reconnect after internet drop and resume where they left off
 - Cookie auth (cookies.txt upload) enables downloading paywalled/private content without embedding credentials in the app
+- A post-ship polish phase is planned: after the core product is working, do a dedicated pass to tune defaults, tighten the out-of-box experience, and make the cyberpunk theme sing
 
 ## Constraints
 
@@ -110,6 +130,9 @@ A user can paste any yt-dlp-supported URL, see exactly what they're about to dow
 | Session isolation as default | Privacy-first default; operators opt into shared/open | — Pending |
 | cookies.txt upload (Netscape format) | yt-dlp native support, well-documented browser extension workflow for users | — Pending |
 | External API deferred to v2 | Keeps v1 scope manageable; current API surface designed cleanly so future consumers aren't blocked | — Pending |
+| Admin UI auth (basic login) over ADMIN_TOKEN | Lowers barrier for non-technical operators; config-via-UI means no docker restarts to change settings; `config.yaml` still supported as override layer | — Pending |
+| Session export/import | Enables identity continuity on persistent instances without a real account system; stays anonymous-first by default | — Pending |
+| Theme files human-readable + heavily commented | Lowers floor for customization to near zero — anyone with a text editor or AI assistant can retheme without frontend knowledge | — Pending |
 
 ---
-*Last updated: 2026-03-17 after initialization*
+*Last updated: 2026-03-17 — added session export/import, theme file accessibility goals, admin basic auth login, polish phase*
