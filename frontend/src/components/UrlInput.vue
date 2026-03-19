@@ -43,6 +43,33 @@ watch(outputFormat, (val) => {
   localStorage.setItem('mediarip:outputFormat', val)
 })
 
+// Clear preview and formats when URL is emptied or changed manually
+let lastFetchedUrl = ''
+watch(url, (newUrl) => {
+  const trimmed = newUrl.trim()
+  if (!trimmed) {
+    // URL cleared — reset everything
+    urlInfo.value = null
+    formats.value = []
+    selectedFormatId.value = null
+    extractError.value = null
+    audioLocked.value = false
+    showOptions.value = false
+    selectedEntries.value = new Set()
+  } else if (trimmed !== lastFetchedUrl) {
+    // URL changed to something different — clear stale preview
+    urlInfo.value = null
+    formats.value = []
+    selectedFormatId.value = null
+    extractError.value = null
+    audioLocked.value = false
+    selectedEntries.value = new Set()
+  }
+})
+
+// Playlist entry selection state
+const selectedEntries = ref<Set<number>>(new Set())
+
 /** Whether formats have been fetched for the current URL. */
 const formatsReady = computed(() => formats.value.length > 0)
 
@@ -69,23 +96,37 @@ async function submitDownload(): Promise<void> {
   if (!trimmed) return
 
   try {
-    await store.submitDownload({
-      url: trimmed,
-      format_id: selectedFormatId.value,
-      quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
-      media_type: mediaType.value,
-      output_format: outputFormat.value === 'auto' ? null : outputFormat.value,
-    })
+    // If playlist with selection, submit only selected entries
+    if (urlInfo.value?.type === 'playlist' && urlInfo.value.entries.length > 0) {
+      const selected = urlInfo.value.entries.filter((_, i) => selectedEntries.value.has(i))
+      for (const entry of selected) {
+        await store.submitDownload({
+          url: entry.url,
+          format_id: selectedFormatId.value,
+          quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
+          media_type: mediaType.value,
+          output_format: outputFormat.value === 'auto' ? null : outputFormat.value,
+        })
+      }
+    } else {
+      await store.submitDownload({
+        url: trimmed,
+        format_id: selectedFormatId.value,
+        quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
+        media_type: mediaType.value,
+        output_format: outputFormat.value === 'auto' ? null : outputFormat.value,
+      })
+    }
     // Reset form on success
     url.value = ''
     formats.value = []
     showOptions.value = false
     selectedFormatId.value = null
     extractError.value = null
-    mediaType.value = 'video'
-    outputFormat.value = 'auto'
     urlInfo.value = null
     audioLocked.value = false
+    selectedEntries.value = new Set()
+    lastFetchedUrl = ''
   } catch {
     // Error already in store.submitError
   }
@@ -111,13 +152,19 @@ async function fetchUrlInfo(): Promise<void> {
   isLoadingInfo.value = true
   urlInfo.value = null
   audioLocked.value = false
+  selectedEntries.value = new Set()
   try {
     const info = await api.getUrlInfo(trimmed)
     urlInfo.value = info
+    lastFetchedUrl = trimmed
     // Auto-switch to audio if the source is audio-only
     if (info.is_audio_only) {
       mediaType.value = 'audio'
       audioLocked.value = true
+    }
+    // Select all playlist entries by default
+    if (info.type === 'playlist' && info.entries.length) {
+      selectedEntries.value = new Set(info.entries.map((_, i) => i))
     }
   } catch {
     // Non-critical — preview is optional
@@ -125,6 +172,30 @@ async function fetchUrlInfo(): Promise<void> {
     isLoadingInfo.value = false
   }
 }
+
+function toggleEntry(index: number): void {
+  const s = new Set(selectedEntries.value)
+  if (s.has(index)) {
+    s.delete(index)
+  } else {
+    s.add(index)
+  }
+  selectedEntries.value = s
+}
+
+function selectAllEntries(): void {
+  if (!urlInfo.value) return
+  selectedEntries.value = new Set(urlInfo.value.entries.map((_, i) => i))
+}
+
+function selectNoneEntries(): void {
+  selectedEntries.value = new Set()
+}
+
+const allEntriesSelected = computed(() =>
+  urlInfo.value ? selectedEntries.value.size === urlInfo.value.entries.length : false
+)
+const someEntriesSelected = computed(() => selectedEntries.value.size > 0)
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return ''
@@ -222,22 +293,36 @@ function formatTooltip(fmt: string): string {
     <div v-else-if="urlInfo" class="url-preview">
       <div class="preview-header">
         <span v-if="urlInfo.type === 'playlist'" class="preview-badge playlist">Playlist · {{ urlInfo.count }} items</span>
-        <span v-else class="preview-badge single">Single {{ audioLocked ? 'track' : 'video' }}</span>
+        <span v-else class="preview-badge single">{{ audioLocked ? 'Track' : 'Video' }}</span>
         <span v-if="audioLocked" class="preview-badge audio-only">Audio only</span>
         <span v-if="urlInfo.title" class="preview-title">{{ urlInfo.title }}</span>
+        <span v-if="urlInfo.type === 'single' && urlInfo.duration" class="preview-duration">({{ formatDuration(urlInfo.duration ?? null) }})</span>
       </div>
       <div v-if="urlInfo.type === 'playlist' && urlInfo.entries.length" class="preview-entries">
+        <div class="preview-controls">
+          <label class="select-all-check" @click.prevent="allEntriesSelected ? selectNoneEntries() : selectAllEntries()">
+            <span class="check-box" :class="{ checked: allEntriesSelected, partial: !allEntriesSelected && someEntriesSelected }">
+              {{ allEntriesSelected ? '✓' : (!allEntriesSelected && someEntriesSelected ? '–' : '') }}
+            </span>
+            <span class="select-label">{{ allEntriesSelected ? 'Deselect all' : 'Select all' }}</span>
+          </label>
+          <span class="selected-count">{{ selectedEntries.size }} of {{ urlInfo.entries.length }} selected</span>
+        </div>
         <div
-          v-for="(entry, i) in urlInfo.entries.slice(0, 10)"
+          v-for="(entry, i) in urlInfo.entries.slice(0, 20)"
           :key="i"
           class="preview-entry"
+          @click="toggleEntry(i)"
         >
+          <span class="check-box" :class="{ checked: selectedEntries.has(i) }">
+            {{ selectedEntries.has(i) ? '✓' : '' }}
+          </span>
           <span class="entry-num">{{ i + 1 }}.</span>
           <span class="entry-title">{{ entry.title }}</span>
-          <span v-if="entry.duration" class="entry-duration">{{ formatDuration(entry.duration) }}</span>
+          <span v-if="entry.duration" class="entry-duration">({{ formatDuration(entry.duration) }})</span>
         </div>
-        <div v-if="urlInfo.entries.length > 10" class="preview-more">
-          …and {{ urlInfo.entries.length - 10 }} more
+        <div v-if="urlInfo.entries.length > 20" class="preview-more">
+          …and {{ urlInfo.entries.length - 20 }} more
         </div>
         <div v-if="urlInfo.unavailable_count" class="preview-warning">
           ⚠ {{ urlInfo.unavailable_count }} private/unavailable item{{ urlInfo.unavailable_count > 1 ? 's' : '' }} skipped
@@ -282,6 +367,7 @@ function formatTooltip(fmt: string): string {
         <FormatPicker
           v-if="formatsReady"
           :formats="formats"
+          :media-type="mediaType"
           @select="onFormatSelect"
         />
         <div v-else-if="!isExtracting" class="options-hint">
@@ -563,16 +649,73 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  max-height: 200px;
+  max-height: 260px;
   overflow-y: auto;
+}
+
+.preview-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-xs);
+}
+
+.select-all-check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  cursor: pointer;
+  user-select: none;
+}
+
+.select-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.selected-count {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.check-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--color-bg);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.check-box.checked {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.check-box.partial {
+  background: var(--color-text-muted);
+  border-color: var(--color-text-muted);
 }
 
 .preview-entry {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 2px 0;
+  padding: 3px 0;
   color: var(--color-text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.preview-entry:hover {
+  color: var(--color-text);
 }
 
 .entry-num {

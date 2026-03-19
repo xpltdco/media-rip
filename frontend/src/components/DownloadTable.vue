@@ -20,6 +20,28 @@ function showToast(message: string): void {
   toastTimer = setTimeout(() => { toast.value = null }, 2000)
 }
 
+// Completed jobs with downloadable files
+const completedWithFiles = computed(() =>
+  props.jobs.filter(j => j.status === 'completed' && j.filename)
+)
+
+function downloadAll(): void {
+  const jobs = completedWithFiles.value
+  if (!jobs.length) return
+  // Stagger downloads slightly to avoid browser blocking
+  jobs.forEach((job, i) => {
+    setTimeout(() => {
+      const a = document.createElement('a')
+      a.href = downloadUrl(job)
+      a.download = ''
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    }, i * 300)
+  })
+  showToast(`Downloading ${jobs.length} file${jobs.length > 1 ? 's' : ''}…`)
+}
+
 // Sort state
 type SortKey = 'name' | 'status' | 'progress' | 'speed' | 'eta'
 const sortBy = ref<SortKey>('name')
@@ -169,6 +191,11 @@ async function clearJob(jobId: string): Promise<void> {
 
 <template>
   <div class="download-table-wrap">
+    <div v-if="completedWithFiles.length > 1" class="table-toolbar">
+      <button class="btn-download-all" @click="downloadAll" title="Download all completed files">
+        ⬇ Download All ({{ completedWithFiles.length }})
+      </button>
+    </div>
     <table class="download-table">
       <thead>
         <tr>
@@ -291,6 +318,28 @@ async function clearJob(jobId: string): Promise<void> {
 .download-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-xs) 0;
+}
+
+.btn-download-all {
+  font-size: var(--font-size-sm);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.15s;
+}
+
+.btn-download-all:hover {
+  background: var(--color-accent-hover);
 }
 
 .download-table {

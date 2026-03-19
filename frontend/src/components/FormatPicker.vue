@@ -4,6 +4,7 @@ import type { FormatInfo } from '@/api/types'
 
 const props = defineProps<{
   formats: FormatInfo[]
+  mediaType?: 'video' | 'audio'
 }>()
 
 const emit = defineEmits<{
@@ -30,6 +31,10 @@ const audioFormats = computed(() =>
     (f) => (!f.vcodec || f.vcodec === 'none') && f.acodec && f.acodec !== 'none',
   ),
 )
+
+// Filter visibility based on mediaType prop
+const showVideo = computed(() => !props.mediaType || props.mediaType === 'video')
+const showAudio = computed(() => !props.mediaType || props.mediaType === 'audio')
 
 function formatLabel(f: FormatInfo): string {
   const parts: string[] = []
@@ -60,7 +65,7 @@ function selectFormat(id: string | null): void {
       <span class="format-hint">Let yt-dlp choose the best quality</span>
     </div>
 
-    <template v-if="videoFormats.length > 0">
+    <template v-if="showVideo && videoFormats.length > 0">
       <div class="format-group-label">Video + Audio</div>
       <div
         v-for="f in videoFormats"
@@ -74,7 +79,7 @@ function selectFormat(id: string | null): void {
       </div>
     </template>
 
-    <template v-if="videoOnlyFormats.length > 0">
+    <template v-if="showVideo && videoOnlyFormats.length > 0">
       <div class="format-group-label">Video only</div>
       <div
         v-for="f in videoOnlyFormats"
@@ -88,7 +93,7 @@ function selectFormat(id: string | null): void {
       </div>
     </template>
 
-    <template v-if="audioFormats.length > 0">
+    <template v-if="showAudio && audioFormats.length > 0">
       <div class="format-group-label">Audio only</div>
       <div
         v-for="f in audioFormats"
