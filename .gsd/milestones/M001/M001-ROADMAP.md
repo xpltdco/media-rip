@@ -71,7 +71,7 @@ This milestone is complete only when all are true:
 - [x] **S04: Admin, Auth + Supporting Features** `risk:medium` `depends:[S02]`
   > After this: Admin panel requires username/password login (bcrypt). Session list, storage view, manual purge, live config editor, unsupported URL log download all functional. Cookie auth upload works per-session. Session export/import produces valid archive. File link sharing serves completed downloads. Security headers present on admin routes. Startup warns if TLS not detected. Proven via auth tests + admin flow verification.
 
-- [ ] **S05: Theme System** `risk:low` `depends:[S03]`
+- [x] **S05: Theme System** `risk:low` `depends:[S03]`
   > After this: Cyberpunk theme renders with scanlines/grid overlay, JetBrains Mono, #00a8ff/#ff6b2b. Dark and light themes are clean alternatives. CSS variable contract documented in base.css. Drop a custom theme folder into /themes volume → restart → appears in picker → applies correctly. Built-in themes heavily commented as documentation. Proven by theme switching and custom theme load.
 
 - [ ] **S06: Docker + CI/CD** `risk:low` `depends:[S01,S02,S03,S04,S05]`
