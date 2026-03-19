@@ -9,7 +9,7 @@ import AdminLogin from './AdminLogin.vue'
 const store = useAdminStore()
 const configStore = useConfigStore()
 const router = useRouter()
-const activeTab = ref<'sessions' | 'storage' | 'purge' | 'settings'>('sessions')
+const activeTab = ref<'sessions' | 'storage' | 'settings'>('sessions')
 
 // Session expansion state
 const expandedSessions = ref<Set<string>>(new Set())
@@ -21,6 +21,8 @@ const welcomeMessage = ref('')
 const defaultVideoFormat = ref('auto')
 const defaultAudioFormat = ref('auto')
 const settingsSaved = ref(false)
+const privacyMode = ref(false)
+const privacyRetentionHours = ref(24)
 
 // Change password state
 const currentPassword = ref('')
@@ -54,6 +56,8 @@ async function switchTab(tab: typeof activeTab.value) {
       welcomeMessage.value = config.welcome_message
       defaultVideoFormat.value = config.default_video_format || 'auto'
       defaultAudioFormat.value = config.default_audio_format || 'auto'
+      privacyMode.value = config.privacy_mode ?? false
+      privacyRetentionHours.value = config.privacy_retention_hours ?? 24
     } catch {
       // Keep current value
     }
@@ -66,6 +70,8 @@ async function saveSettings() {
     welcome_message: welcomeMessage.value,
     default_video_format: defaultVideoFormat.value,
     default_audio_format: defaultAudioFormat.value,
+    privacy_mode: privacyMode.value,
+    privacy_retention_hours: privacyRetentionHours.value,
   })
   if (ok) {
     // Reload public config so main page picks up new defaults
@@ -160,7 +166,7 @@ function formatFilesize(bytes: number | null): string {
 
       <div class="admin-tabs">
         <button
-          v-for="tab in (['sessions', 'storage', 'purge', 'settings'] as const)"
+          v-for="tab in (['sessions', 'storage', 'settings'] as const)"
           :key="tab"
           :class="{ active: activeTab === tab }"
           @click="switchTab(tab)"
@@ -239,26 +245,65 @@ function formatFilesize(bytes: number | null): string {
         <p v-else class="empty">Loading…</p>
       </div>
 
-      <!-- Purge tab -->
-      <div v-if="activeTab === 'purge'" class="tab-content">
-        <p>Manually trigger a purge of expired downloads.</p>
-        <button
-          @click="store.triggerPurge()"
-          :disabled="store.isLoading"
-          class="btn-purge"
-        >
-          {{ store.isLoading ? 'Purging…' : 'Run Purge' }}
-        </button>
-        <div v-if="store.purgeResult" class="purge-result">
-          <p>Rows deleted: {{ store.purgeResult.rows_deleted }}</p>
-          <p>Files deleted: {{ store.purgeResult.files_deleted }}</p>
-          <p>Files already gone: {{ store.purgeResult.files_missing }}</p>
-          <p>Active jobs skipped: {{ store.purgeResult.active_skipped }}</p>
-        </div>
-      </div>
-
       <!-- Settings tab -->
       <div v-if="activeTab === 'settings'" class="tab-content">
+        <!-- Privacy Mode -->
+        <div class="settings-field">
+          <label class="toggle-label">
+            <span>Privacy Mode</span>
+            <label class="toggle-switch">
+              <input type="checkbox" v-model="privacyMode" />
+              <span class="toggle-slider"></span>
+            </label>
+          </label>
+          <p class="field-hint">
+            When enabled, download history, session logs, and files are automatically purged
+            after the configured retention period.
+          </p>
+          <div v-if="privacyMode" class="retention-setting">
+            <label class="retention-label">Retention period</label>
+            <div class="retention-input-row">
+              <input
+                type="number"
+                v-model.number="privacyRetentionHours"
+                min="1"
+                max="8760"
+                class="settings-input retention-input"
+              />
+              <span class="retention-unit">hours</span>
+            </div>
+            <p class="field-hint">
+              Data older than this is automatically purged (default: 24 hours).
+            </p>
+          </div>
+        </div>
+
+        <hr class="settings-divider" />
+
+        <!-- Manual Purge -->
+        <div class="settings-field">
+          <label>Manual Purge</label>
+          <p class="field-hint">
+            Immediately remove expired downloads and their files from disk.
+            Active downloads are never affected.
+          </p>
+          <button
+            @click="store.triggerPurge()"
+            :disabled="store.isLoading"
+            class="btn-purge"
+          >
+            {{ store.isLoading ? 'Purging…' : 'Run Purge Now' }}
+          </button>
+          <div v-if="store.purgeResult" class="purge-result">
+            <p>Rows deleted: {{ store.purgeResult.rows_deleted }}</p>
+            <p>Files deleted: {{ store.purgeResult.files_deleted }}</p>
+            <p>Files already gone: {{ store.purgeResult.files_missing }}</p>
+            <p>Active jobs skipped: {{ store.purgeResult.active_skipped }}</p>
+          </div>
+        </div>
+
+        <hr class="settings-divider" />
+
         <div class="settings-field">
           <label for="welcome-msg">Welcome Message</label>
           <p class="field-hint">Displayed above the URL input on the main page. Leave empty to hide.</p>
@@ -593,6 +638,86 @@ h3 {
   border: none;
   border-top: 1px solid var(--color-border);
   margin: var(--space-lg) 0;
+}
+
+/* Toggle switch */
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--color-border);
+  border-radius: 24px;
+  transition: background-color 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--color-bg);
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-accent-primary, #00a8ff);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
+/* Retention input */
+.retention-setting {
+  margin-top: var(--space-sm);
+  padding-left: var(--space-sm);
+  border-left: 2px solid var(--color-accent-primary, #00a8ff);
+}
+
+.retention-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.retention-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.retention-input {
+  width: 80px !important;
+  text-align: center;
+}
+
+.retention-unit {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .password-fields {

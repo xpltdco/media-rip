@@ -20,16 +20,28 @@ logger = logging.getLogger("mediarip.purge")
 async def run_purge(db: aiosqlite.Connection, config: AppConfig) -> dict:
     """Execute a purge cycle.
 
-    Deletes completed/failed/expired jobs older than ``config.purge.max_age_hours``
-    and their associated files from disk.
+    When privacy_mode is active, uses privacy_retention_hours.
+    Otherwise uses max_age_hours.
+
+    Deletes completed/failed/expired jobs older than the configured
+    retention period and their associated files from disk.
 
     Returns a summary dict with counts.
     """
-    max_age_hours = config.purge.max_age_hours
-    output_dir = Path(config.downloads.output_dir)
-    cutoff = (datetime.now(timezone.utc) - timedelta(hours=max_age_hours)).isoformat()
+    overrides = getattr(config, "_runtime_overrides", {})
+    privacy_on = overrides.get("privacy_mode", config.purge.privacy_mode)
 
-    logger.info("Purge starting: max_age=%dh, cutoff=%s", max_age_hours, cutoff)
+    if privacy_on:
+        retention = overrides.get(
+            "privacy_retention_hours", config.purge.privacy_retention_hours
+        )
+    else:
+        retention = config.purge.max_age_hours
+
+    output_dir = Path(config.downloads.output_dir)
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=retention)).isoformat()
+
+    logger.info("Purge starting: retention=%dh (privacy=%s), cutoff=%s", retention, privacy_on, cutoff)
 
     # Find purgeable jobs — terminal status AND older than cutoff
     cursor = await db.execute(

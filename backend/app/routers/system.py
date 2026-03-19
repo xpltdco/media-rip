@@ -34,4 +34,8 @@ async def public_config(request: Request) -> dict:
         "max_concurrent_downloads": config.downloads.max_concurrent,
         "default_video_format": overrides.get("default_video_format", "auto"),
         "default_audio_format": overrides.get("default_audio_format", "auto"),
+        "privacy_mode": overrides.get("privacy_mode", config.purge.privacy_mode),
+        "privacy_retention_hours": overrides.get(
+            "privacy_retention_hours", config.purge.privacy_retention_hours
+        ),
     }

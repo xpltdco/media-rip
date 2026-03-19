@@ -75,6 +75,8 @@ export interface PublicConfig {
   max_concurrent_downloads: number
   default_video_format: string
   default_audio_format: string
+  privacy_mode: boolean
+  privacy_retention_hours: number
 }
 
 export interface HealthStatus {
