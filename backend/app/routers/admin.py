@@ -158,7 +158,15 @@ async def manual_purge(
     # Attach runtime overrides so purge service can read them
     overrides = getattr(request.app.state, "settings_overrides", {})
     config._runtime_overrides = overrides
-    result = await run_purge(db, config)
+    result = await run_purge(db, config, purge_all=True)
+
+    # Broadcast job_removed events to all SSE clients
+    broker = request.app.state.broker
+    for job_id in result.get("deleted_job_ids", []):
+        broker.publish_all({"event": "job_removed", "data": {"job_id": job_id}})
+
+    # Don't send internal field to client
+    result.pop("deleted_job_ids", None)
     return result
 
 

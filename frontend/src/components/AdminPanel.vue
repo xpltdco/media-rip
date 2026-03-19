@@ -247,160 +247,171 @@ function formatFilesize(bytes: number | null): string {
 
       <!-- Settings tab -->
       <div v-if="activeTab === 'settings'" class="tab-content">
-        <!-- Privacy Mode -->
-        <div class="settings-field">
-          <label class="toggle-label">
-            <span>Privacy Mode</span>
-            <label class="toggle-switch">
-              <input type="checkbox" v-model="privacyMode" />
-              <span class="toggle-slider"></span>
-            </label>
-          </label>
-          <p class="field-hint">
-            When enabled, download history, session logs, and files are automatically purged
-            after the configured retention period.
-          </p>
-          <div v-if="privacyMode" class="retention-setting">
-            <label class="retention-label">Retention period</label>
-            <div class="retention-input-row">
-              <input
-                type="number"
-                v-model.number="privacyRetentionHours"
-                min="1"
-                max="8760"
-                class="settings-input retention-input"
-              />
-              <span class="retention-unit">hours</span>
-            </div>
-            <p class="field-hint">
-              Data older than this is automatically purged (default: 24 hours).
-            </p>
+        <!-- Section: Appearance & Defaults -->
+        <div class="settings-section">
+          <h3 class="section-heading">Appearance &amp; Defaults</h3>
+
+          <div class="settings-field">
+            <label for="welcome-msg">Welcome Message</label>
+            <p class="field-hint">Displayed above the URL input on the main page. Leave empty to hide.</p>
+            <textarea
+              id="welcome-msg"
+              v-model="welcomeMessage"
+              rows="3"
+              class="settings-textarea"
+              placeholder="Enter a welcome message…"
+            ></textarea>
           </div>
-        </div>
 
-        <hr class="settings-divider" />
-
-        <!-- Manual Purge -->
-        <div class="settings-field">
-          <label>Manual Purge</label>
-          <p class="field-hint">
-            Immediately remove expired downloads and their files from disk.
-            Active downloads are never affected.
-          </p>
-          <button
-            @click="store.triggerPurge()"
-            :disabled="store.isLoading"
-            class="btn-purge"
-          >
-            {{ store.isLoading ? 'Purging…' : 'Run Purge Now' }}
-          </button>
-          <div v-if="store.purgeResult" class="purge-result">
-            <p>Rows deleted: {{ store.purgeResult.rows_deleted }}</p>
-            <p>Files deleted: {{ store.purgeResult.files_deleted }}</p>
-            <p>Files already gone: {{ store.purgeResult.files_missing }}</p>
-            <p>Active jobs skipped: {{ store.purgeResult.active_skipped }}</p>
-          </div>
-        </div>
-
-        <hr class="settings-divider" />
-
-        <div class="settings-field">
-          <label for="welcome-msg">Welcome Message</label>
-          <p class="field-hint">Displayed above the URL input on the main page. Leave empty to hide.</p>
-          <textarea
-            id="welcome-msg"
-            v-model="welcomeMessage"
-            rows="3"
-            class="settings-textarea"
-            placeholder="Enter a welcome message…"
-          ></textarea>
-        </div>
-
-        <div class="settings-field" style="margin-top: var(--space-lg);">
-          <label>Default Output Formats</label>
-          <p class="field-hint">When "Auto" is selected, files are converted to these formats instead of the native container.</p>
-          <div class="format-defaults">
-            <div class="format-default-row">
-              <span class="format-default-label">Video</span>
-              <select v-model="defaultVideoFormat" class="settings-select">
-                <option value="auto">Auto (native container)</option>
-                <option value="mp4">MP4</option>
-                <option value="webm">WebM</option>
-              </select>
-            </div>
-            <div class="format-default-row">
-              <span class="format-default-label">Audio</span>
-              <select v-model="defaultAudioFormat" class="settings-select">
-                <option value="auto">Auto (native container)</option>
-                <option value="mp3">MP3</option>
-                <option value="m4a">M4A (AAC)</option>
-                <option value="flac">FLAC</option>
-                <option value="wav">WAV</option>
-                <option value="opus">Opus</option>
-              </select>
+          <div class="settings-field" style="margin-top: var(--space-lg);">
+            <label>Default Output Formats</label>
+            <p class="field-hint">When "Auto" is selected, files are converted to these formats instead of the native container.</p>
+            <div class="format-defaults">
+              <div class="format-default-row">
+                <span class="format-default-label">Video</span>
+                <select v-model="defaultVideoFormat" class="settings-select">
+                  <option value="auto">Auto (native container)</option>
+                  <option value="mp4">MP4</option>
+                  <option value="webm">WebM</option>
+                </select>
+              </div>
+              <div class="format-default-row">
+                <span class="format-default-label">Audio</span>
+                <select v-model="defaultAudioFormat" class="settings-select">
+                  <option value="auto">Auto (native container)</option>
+                  <option value="mp3">MP3</option>
+                  <option value="m4a">M4A (AAC)</option>
+                  <option value="flac">FLAC</option>
+                  <option value="wav">WAV</option>
+                  <option value="opus">Opus</option>
+                </select>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="settings-actions">
-          <button
-            @click="saveSettings"
-            :disabled="store.isLoading"
-            class="btn-save"
-          >
-            {{ store.isLoading ? 'Saving…' : 'Save Settings' }}
-          </button>
-          <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
-        </div>
-        <p class="field-hint" style="margin-top: var(--space-md);">
-          Changes are applied immediately but reset on server restart.
-        </p>
-
-        <hr class="settings-divider" />
-
-        <div class="settings-field">
-          <label>Change Password</label>
-          <p class="field-hint">Update the admin password. Takes effect immediately but resets on server restart.</p>
-          <div class="password-fields">
-            <input
-              v-model="currentPassword"
-              type="password"
-              placeholder="Current password"
-              autocomplete="current-password"
-              class="settings-input"
-            />
-            <input
-              v-model="newPassword"
-              type="password"
-              placeholder="New password"
-              autocomplete="new-password"
-              class="settings-input"
-            />
-            <input
-              v-model="confirmPassword"
-              type="password"
-              placeholder="Confirm new password"
-              autocomplete="new-password"
-              class="settings-input"
-              @keydown.enter="changePassword"
-            />
-            <span
-              v-if="confirmPassword && newPassword && confirmPassword !== newPassword"
-              class="password-mismatch"
-            >
-              Passwords don't match
-            </span>
-          </div>
-          <div class="settings-actions" style="margin-top: var(--space-sm);">
+          <div class="settings-actions">
             <button
-              @click="changePassword"
-              :disabled="!canChangePassword || changingPassword"
+              @click="saveSettings"
+              :disabled="store.isLoading"
               class="btn-save"
             >
-              {{ changingPassword ? 'Changing…' : 'Change Password' }}
+              {{ store.isLoading ? 'Saving…' : 'Save Settings' }}
             </button>
-            <span v-if="passwordChanged" class="save-confirm">✓ Password changed</span>
-            <span v-if="passwordError" class="password-error">{{ passwordError }}</span>
+            <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
+          </div>
+          <p class="field-hint" style="margin-top: var(--space-sm);">
+            Changes are applied immediately but reset on server restart.
+          </p>
+        </div>
+
+        <hr class="settings-divider" />
+
+        <!-- Section: Privacy & Data -->
+        <div class="settings-section">
+          <h3 class="section-heading">Privacy &amp; Data</h3>
+
+          <div class="settings-field">
+            <label class="toggle-label">
+              <span>Privacy Mode</span>
+              <label class="toggle-switch">
+                <input type="checkbox" v-model="privacyMode" />
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+            <p class="field-hint">
+              Automatically purge download history, files, and session data
+              after the retention period. Changes are saved with the button above.
+            </p>
+            <div v-if="privacyMode" class="retention-setting">
+              <label class="retention-label">Retention period</label>
+              <div class="retention-input-row">
+                <input
+                  type="number"
+                  v-model.number="privacyRetentionHours"
+                  min="1"
+                  max="8760"
+                  class="settings-input retention-input"
+                />
+                <span class="retention-unit">hours</span>
+              </div>
+              <p class="field-hint">
+                Data older than this is automatically purged (default: 24 hours).
+              </p>
+            </div>
+          </div>
+
+          <div class="settings-field" style="margin-top: var(--space-md);">
+            <label>Manual Purge</label>
+            <p class="field-hint">
+              Immediately clear all completed and failed downloads — removes
+              database records and files from disk. Active downloads are never affected.
+            </p>
+            <button
+              @click="store.triggerPurge()"
+              :disabled="store.isLoading"
+              class="btn-purge"
+            >
+              {{ store.isLoading ? 'Purging…' : 'Run Purge Now' }}
+            </button>
+            <div v-if="store.purgeResult" class="purge-result">
+              <p>Rows deleted: {{ store.purgeResult.rows_deleted }}</p>
+              <p>Files deleted: {{ store.purgeResult.files_deleted }}</p>
+              <p>Files already gone: {{ store.purgeResult.files_missing }}</p>
+              <p>Active jobs skipped: {{ store.purgeResult.active_skipped }}</p>
+            </div>
+          </div>
+        </div>
+
+        <hr class="settings-divider" />
+
+        <!-- Section: Security -->
+        <div class="settings-section">
+          <h3 class="section-heading">Security</h3>
+
+          <div class="settings-field">
+            <label>Change Password</label>
+            <p class="field-hint">Update the admin password. Takes effect immediately but resets on server restart.</p>
+            <div class="password-fields">
+              <input
+                v-model="currentPassword"
+                type="password"
+                placeholder="Current password"
+                autocomplete="current-password"
+                class="settings-input"
+              />
+              <input
+                v-model="newPassword"
+                type="password"
+                placeholder="New password"
+                autocomplete="new-password"
+                class="settings-input"
+              />
+              <input
+                v-model="confirmPassword"
+                type="password"
+                placeholder="Confirm new password"
+                autocomplete="new-password"
+                class="settings-input"
+                @keydown.enter="changePassword"
+              />
+              <span
+                v-if="confirmPassword && newPassword && confirmPassword !== newPassword"
+                class="password-mismatch"
+              >
+                Passwords don't match
+              </span>
+            </div>
+            <div class="settings-actions" style="margin-top: var(--space-sm);">
+              <button
+                @click="changePassword"
+                :disabled="!canChangePassword || changingPassword"
+                class="btn-save"
+              >
+                {{ changingPassword ? 'Changing…' : 'Change Password' }}
+              </button>
+              <span v-if="passwordChanged" class="save-confirm">✓ Password changed</span>
+              <span v-if="passwordError" class="password-error">{{ passwordError }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -539,6 +550,18 @@ h3 {
 .empty {
   color: var(--color-text-muted);
   text-align: center;
+}
+
+.settings-section {
+  margin-bottom: var(--space-sm);
+}
+
+.section-heading {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-md) 0;
+  letter-spacing: 0.02em;
 }
 
 .settings-field {

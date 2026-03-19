@@ -57,6 +57,24 @@ class SSEBroker:
         """
         self._loop.call_soon_threadsafe(self._publish_sync, session_id, event)
 
+    def publish_all(self, event: object) -> None:
+        """Publish *event* to ALL sessions — thread-safe.
+
+        Used for broadcasts like purge notifications.
+        """
+        self._loop.call_soon_threadsafe(self._publish_all_sync, event)
+
+    def _publish_all_sync(self, event: object) -> None:
+        """Deliver *event* to all queues across all sessions."""
+        for session_id, queues in self._subscribers.items():
+            for queue in queues:
+                try:
+                    queue.put_nowait(event)
+                except asyncio.QueueFull:
+                    logger.warning(
+                        "Queue full for session %s — dropping broadcast", session_id
+                    )
+
     def _publish_sync(self, session_id: str, event: object) -> None:
         """Deliver *event* to all queues for *session_id*.
 
