@@ -168,6 +168,8 @@ async def update_settings(
 
     Accepts a JSON body with optional fields:
       - welcome_message: str
+      - default_video_format: str (auto, mp4, webm)
+      - default_audio_format: str (auto, mp3, m4a, flac, wav, opus)
     """
     body = await request.json()
 
@@ -187,5 +189,22 @@ async def update_settings(
         request.app.state.settings_overrides["welcome_message"] = msg
         updated.append("welcome_message")
         logger.info("Admin updated welcome_message to: %s", msg[:80])
+
+    valid_video_formats = {"auto", "mp4", "webm"}
+    valid_audio_formats = {"auto", "mp3", "m4a", "flac", "wav", "opus"}
+
+    if "default_video_format" in body:
+        fmt = body["default_video_format"]
+        if fmt in valid_video_formats:
+            request.app.state.settings_overrides["default_video_format"] = fmt
+            updated.append("default_video_format")
+            logger.info("Admin updated default_video_format to: %s", fmt)
+
+    if "default_audio_format" in body:
+        fmt = body["default_audio_format"]
+        if fmt in valid_audio_formats:
+            request.app.state.settings_overrides["default_audio_format"] = fmt
+            updated.append("default_audio_format")
+            logger.info("Admin updated default_audio_format to: %s", fmt)
 
     return {"updated": updated, "status": "ok"}

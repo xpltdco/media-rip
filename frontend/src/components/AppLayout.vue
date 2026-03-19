@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useThemeStore } from '@/stores/theme'
+import WireframeBackground from './WireframeBackground.vue'
+
+const themeStore = useThemeStore()
+const showWireframe = computed(() => themeStore.currentTheme === 'cyberpunk')
 
 type MobileTab = 'submit' | 'queue'
 const activeTab = ref<MobileTab>('submit')
@@ -7,6 +12,7 @@ const activeTab = ref<MobileTab>('submit')
 
 <template>
   <div class="app-layout">
+    <WireframeBackground v-if="showWireframe" />
     <!-- Desktop: single scrollable view -->
     <main class="layout-main">
       <!-- URL input section -->
@@ -58,6 +64,8 @@ const activeTab = ref<MobileTab>('submit')
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
+  position: relative;
+  z-index: 1;
 }
 
 .section-submit,
