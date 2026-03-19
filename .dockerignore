@@ -1,37 +1,33 @@
-# Dependencies
-node_modules/
-.venv/
+# Ignore Python / build artifacts
 __pycache__/
 *.pyc
-
-# Build artifacts
-frontend/dist/
+.venv/
+venv/
 *.egg-info/
+dist/
+build/
 
-# Development files
-.git/
+# Ignore Node artifacts
+node_modules/
+frontend/dist/
+
+# Ignore dev/test files
 .gsd/
-.planning/
-.github/
-.vscode/
-*.md
-!README.md
-
-# Test files
-backend/tests/
-frontend/src/tests/
-frontend/vitest.config.ts
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Docker
-docker-compose*.yml
-Dockerfile
-.dockerignore
-
-# Misc
+.bg-shell/
+*.log
+coverage/
+.cache/
+tmp/
 .env
 .env.*
-*.log
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore IDE
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
