@@ -11,14 +11,12 @@ import contextlib
 import json
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from app.core.database import create_job, create_session, get_active_jobs_by_session
-from app.core.sse_broker import SSEBroker
-from app.models.job import Job, JobStatus, ProgressEvent
-from app.routers.sse import KEEPALIVE_TIMEOUT, event_generator
+from app.models.job import Job, ProgressEvent
+from app.routers.sse import event_generator
 
 
 # ---------------------------------------------------------------------------

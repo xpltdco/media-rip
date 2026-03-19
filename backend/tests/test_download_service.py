@@ -7,7 +7,6 @@ and unit tests that only touch the database.
 from __future__ import annotations
 
 import asyncio
-import os
 
 import pytest
 import pytest_asyncio
@@ -104,7 +103,7 @@ async def test_real_download_produces_file_and_events(download_env):
 
     # At least one event should have non-zero percent
     downloading_events = [e for e in events if e.status == "downloading"]
-    has_progress = any(e.percent > 0 for e in downloading_events)
+    any(e.percent > 0 for e in downloading_events)
     # Some very short videos may not report intermediate progress —
     # we still assert downloading events exist
     assert len(downloading_events) > 0

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import base64
 from datetime import datetime, timezone
 
@@ -13,9 +12,8 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import AppConfig
-from app.core.database import close_db, init_db, create_session, create_job
+from app.core.database import close_db, init_db
 from app.middleware.session import SessionMiddleware
-from app.models.job import Job
 from app.routers.admin import router as admin_router
 
 

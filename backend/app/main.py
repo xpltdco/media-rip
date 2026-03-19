@@ -14,6 +14,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 
 from app.core.config import AppConfig
 from app.core.database import close_db, init_db
@@ -109,9 +112,6 @@ app.add_middleware(SessionMiddleware)
 
 
 # --- Security headers middleware (R020: zero outbound telemetry) ---
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -150,7 +150,6 @@ app.include_router(themes_router, prefix="/api")
 # --- Static file serving (production: built frontend) ---
 _static_dir = Path(__file__).resolve().parent.parent / "static"
 if _static_dir.is_dir():
-    from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
 
     @app.get("/{full_path:path}")

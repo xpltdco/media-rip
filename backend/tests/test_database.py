@@ -6,7 +6,6 @@ import asyncio
 import uuid
 from datetime import datetime, timezone
 
-import pytest
 
 from app.core.database import (
     close_db,

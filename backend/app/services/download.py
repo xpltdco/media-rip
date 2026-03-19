@@ -21,7 +21,6 @@ import yt_dlp
 from app.core.config import AppConfig
 from app.core.database import (
     create_job,
-    get_job,
     update_job_progress,
     update_job_status,
 )

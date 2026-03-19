@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 import pytest_asyncio
@@ -12,9 +10,8 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.core.config import AppConfig
-from app.core.database import close_db, init_db, create_job
+from app.core.database import close_db, init_db
 from app.middleware.session import SessionMiddleware
-from app.models.job import Job
 from app.routers.cookies import router as cookies_router
 from app.routers.files import router as files_router
 

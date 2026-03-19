@@ -54,7 +54,6 @@ async def cancel_download(
     """Delete a download job and remove its file."""
     logger.debug("DELETE /downloads/%s", job_id)
     db = request.app.state.db
-    download_service = request.app.state.download_service
 
     # Fetch the job first to get its session_id and filename
     job = await get_job(db, job_id)
