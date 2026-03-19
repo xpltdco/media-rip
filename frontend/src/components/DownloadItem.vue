@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useDownloadsStore } from '@/stores/downloads'
 import ProgressBar from './ProgressBar.vue'
 import type { Job, JobStatus } from '@/api/types'
@@ -43,11 +43,17 @@ const showProgress = computed(() =>
   props.job.status === 'downloading' || props.job.status === 'extracting',
 )
 
+const cancelling = ref(false)
+
 async function cancel(): Promise<void> {
+  if (cancelling.value) return
+  cancelling.value = true
   try {
     await store.cancelDownload(props.job.id)
-  } catch {
-    // Error will show in UI via store
+  } catch (err) {
+    console.error('[DownloadItem] Cancel failed:', err)
+  } finally {
+    cancelling.value = false
   }
 }
 </script>
@@ -74,10 +80,12 @@ async function cancel(): Promise<void> {
       <button
         v-if="isActive"
         class="btn-cancel"
-        @click="cancel"
+        :class="{ cancelling }"
+        :disabled="cancelling"
+        @click.stop="cancel"
         title="Cancel download"
       >
-        ✕
+        {{ cancelling ? '…' : '✕' }}
       </button>
     </div>
   </div>

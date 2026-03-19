@@ -1,10 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { ConnectionStatus } from '@/composables/useSSE'
-
-const props = defineProps<{
-  connectionStatus: ConnectionStatus
-}>()
 
 type MobileTab = 'submit' | 'queue'
 const activeTab = ref<MobileTab>('submit')

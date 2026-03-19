@@ -1,17 +1,5 @@
 <script setup lang="ts">
-import type { ConnectionStatus } from '@/composables/useSSE'
-import ThemePicker from '@/components/ThemePicker.vue'
-
-const props = defineProps<{
-  connectionStatus: ConnectionStatus
-}>()
-
-const statusColor: Record<ConnectionStatus, string> = {
-  connected: 'var(--color-success)',
-  connecting: 'var(--color-warning)',
-  reconnecting: 'var(--color-warning)',
-  disconnected: 'var(--color-error)',
-}
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
 </script>
 
 <template>
@@ -21,13 +9,7 @@ const statusColor: Record<ConnectionStatus, string> = {
         <span class="title-media">media</span><span class="title-dot">.</span><span class="title-rip">rip</span><span class="title-parens">()</span>
       </h1>
       <div class="header-right">
-        <ThemePicker />
-        <div class="header-status" :title="`SSE: ${connectionStatus}`">
-          <span
-            class="status-dot"
-            :style="{ backgroundColor: statusColor[connectionStatus] }"
-          ></span>
-        </div>
+        <DarkModeToggle />
       </div>
     </div>
   </header>
@@ -71,18 +53,5 @@ const statusColor: Record<ConnectionStatus, string> = {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-}
-
-.header-status {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  transition: background-color 0.3s ease;
 }
 </style>

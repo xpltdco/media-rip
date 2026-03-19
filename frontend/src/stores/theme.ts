@@ -33,6 +33,9 @@ export const useThemeStore = defineStore('theme', () => {
   const customThemes = ref<ThemeMeta[]>([])
   const customThemeCSS = ref<Map<string, string>>(new Map())
 
+  /** Whether the current theme is a dark variant (cyberpunk and dark are dark; light is light). */
+  const isDark = computed(() => currentTheme.value !== 'light')
+
   const allThemes = computed<ThemeMeta[]>(() => [
     ...BUILTIN_THEMES,
     ...customThemes.value,
@@ -56,6 +59,20 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   /**
+   * Toggle between the current theme's dark and light variant.
+   * Cyberpunk (default) ↔ Light. Dark ↔ Light.
+   */
+  function toggleDarkMode(): void {
+    if (isDark.value) {
+      setTheme('light')
+    } else {
+      // Return to the last dark theme, defaulting to cyberpunk
+      const lastDark = localStorage.getItem(STORAGE_KEY + '-dark') || DEFAULT_THEME
+      setTheme(lastDark === 'light' ? DEFAULT_THEME : lastDark)
+    }
+  }
+
+  /**
    * Switch to a theme by ID. Saves to localStorage and applies immediately.
    */
   function setTheme(themeId: string): void {
@@ -64,6 +81,10 @@ export const useThemeStore = defineStore('theme', () => {
 
     currentTheme.value = themeId
     localStorage.setItem(STORAGE_KEY, themeId)
+    // Remember the last dark theme for toggle
+    if (themeId !== 'light') {
+      localStorage.setItem(STORAGE_KEY + '-dark', themeId)
+    }
     _apply(themeId)
   }
 
@@ -139,8 +160,10 @@ export const useThemeStore = defineStore('theme', () => {
     customThemes,
     allThemes,
     currentMeta,
+    isDark,
     init,
     setTheme,
+    toggleDarkMode,
     loadCustomThemes,
   }
 })
