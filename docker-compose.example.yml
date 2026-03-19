@@ -1,51 +1,62 @@
-# media.rip() — Secure Deployment with Caddy (Auto-TLS)
+# media.rip() — Docker Compose example with Caddy reverse proxy
+#
+# This is the recommended deployment configuration.
+# Caddy automatically provisions TLS certificates via Let's Encrypt.
 #
 # Usage:
-#   1. Copy this file to docker-compose.yml
-#   2. Copy .env.example to .env and fill in your domain + admin password
-#   3. docker compose up -d
+#   1. Replace YOUR_DOMAIN with your actual domain
+#   2. Set a strong admin password hash (see below)
+#   3. Run: docker compose up -d
 #
-# Caddy automatically obtains and renews TLS certificates from Let's Encrypt.
-# The admin panel is protected behind HTTPS with Basic auth.
+# Generate a bcrypt password hash:
+#   docker run --rm python:3.12-slim python -c \
+#     "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
 
 services:
-  mediarip:
-    image: ghcr.io/jlightner/media-rip:latest
-    volumes:
-      - ./downloads:/downloads
-      - ./themes:/themes
-      - mediarip-data:/data
-    environment:
-      - MEDIARIP__SESSION__MODE=isolated
-      - MEDIARIP__ADMIN__ENABLED=true
-      - MEDIARIP__ADMIN__USERNAME=${ADMIN_USERNAME:-admin}
-      - MEDIARIP__ADMIN__PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
-      - MEDIARIP__PURGE__ENABLED=true
-      - MEDIARIP__PURGE__MAX_AGE_HOURS=168
+  media-rip:
+    image: ghcr.io/xpltd/media-rip:latest
+    container_name: media-rip
     restart: unless-stopped
+    volumes:
+      - downloads:/downloads
+      - data:/data
+      # Optional: custom themes
+      # - ./themes:/themes:ro
+      # Optional: config file
+      # - ./config.yaml:/app/config.yaml:ro
+    environment:
+      # Admin panel (optional — remove to disable)
+      MEDIARIP__ADMIN__ENABLED: "true"
+      MEDIARIP__ADMIN__USERNAME: "admin"
+      MEDIARIP__ADMIN__PASSWORD_HASH: "${ADMIN_PASSWORD_HASH}"
+      # Session mode: isolated (default), shared, or open
+      # MEDIARIP__SESSION__MODE: "isolated"
+    expose:
+      - "8000"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
       timeout: 5s
       retries: 3
-    # Not exposed directly — Caddy handles external traffic
-    expose:
-      - "8000"
+      start_period: 10s
 
   caddy:
     image: caddy:2-alpine
+    container_name: media-rip-caddy
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    restart: unless-stopped
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
-      - mediarip
+      media-rip:
+        condition: service_healthy
 
 volumes:
-  mediarip-data:
-  caddy-data:
-  caddy-config:
+  downloads:
+  data:
+  caddy_data:
+  caddy_config:

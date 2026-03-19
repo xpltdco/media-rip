@@ -1,93 +1,66 @@
-# media.rip() Docker Build
+# media.rip() — multi-stage Docker build
+# Stage 1: Build frontend (Node)
+# Stage 2: Install backend deps (Python)
+# Stage 3: Slim runtime with ffmpeg
 #
-# Multi-stage build:
-#   1. frontend-build: Install npm deps + build Vue 3 SPA
-#   2. backend-deps:   Install Python deps into a virtual env
-#   3. runtime:        Copy built assets + venv into minimal image
-#
-# Usage:
-#   docker build -t media-rip .
-#   docker run -p 8080:8000 -v ./downloads:/downloads media-rip
+# Image: ghcr.io/xpltd/media-rip
+# Platforms: linux/amd64, linux/arm64
 
-# ══════════════════════════════════════════
-# Stage 1: Build frontend
-# ══════════════════════════════════════════
-FROM node:20-slim AS frontend-build
+# ── Stage 1: Frontend build ──────────────────────────────────────────
+FROM node:22-slim AS frontend-builder
 
-WORKDIR /build
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --no-audit --no-fund
-
+WORKDIR /build/frontend
+COPY frontend/package.json frontend/package-lock.json* ./
+RUN npm ci --ignore-scripts
 COPY frontend/ ./
 RUN npm run build
 
-# ══════════════════════════════════════════
-# Stage 2: Install Python dependencies
-# ══════════════════════════════════════════
-FROM python:3.12-slim AS backend-deps
+# ── Stage 2: Python dependencies ─────────────────────────────────────
+FROM python:3.12-slim AS python-deps
 
 WORKDIR /build
-
-# Install build tools needed for some pip packages (bcrypt, etc.)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
-
 COPY backend/requirements.txt ./
-RUN python -m venv /opt/venv && \
-    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# ══════════════════════════════════════════
-# Stage 3: Runtime image
-# ══════════════════════════════════════════
+# ── Stage 3: Runtime ─────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
-LABEL org.opencontainers.image.title="media.rip()"
-LABEL org.opencontainers.image.description="Self-hostable yt-dlp web frontend"
-LABEL org.opencontainers.image.source="https://github.com/jlightner/media-rip"
+# Install ffmpeg (required by yt-dlp for muxing/transcoding)
+# Install deno (required by yt-dlp for YouTube JS interpretation)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg curl unzip && \
+    curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh && \
+    apt-get purge -y curl unzip && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copy Python packages from deps stage
+COPY --from=python-deps /install /usr/local
 
-# Install yt-dlp (latest stable)
-RUN pip install --no-cache-dir yt-dlp
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash mediarip
 
-# Copy virtual env from deps stage
-COPY --from=backend-deps /opt/venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Set up application directory
+# Application code
 WORKDIR /app
+COPY backend/ ./
 
-# Copy backend source
-COPY backend/app ./app
+# Copy built frontend into backend static dir
+COPY --from=frontend-builder /build/frontend/dist ./static
 
-# Copy built frontend into static serving directory
-COPY --from=frontend-build /build/dist ./static
+# Create default directories
+RUN mkdir -p /downloads /data && \
+    chown -R mediarip:mediarip /app /downloads /data
 
-# Create directories for runtime data
-RUN mkdir -p /downloads /themes /data
+USER mediarip
 
-# Default environment
-ENV MEDIARIP__SERVER__HOST=0.0.0.0 \
-    MEDIARIP__SERVER__PORT=8000 \
-    MEDIARIP__SERVER__DB_PATH=/data/mediarip.db \
-    MEDIARIP__DOWNLOADS__OUTPUT_DIR=/downloads \
-    MEDIARIP__THEMES_DIR=/themes \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
-
-# Volumes for persistent data
-VOLUME ["/downloads", "/themes", "/data"]
+# Environment defaults
+ENV MEDIARIP__DOWNLOADS__OUTPUT_DIR=/downloads \
+    MEDIARIP__DATABASE__PATH=/data/mediarip.db \
+    PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
 
-# Run with uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
