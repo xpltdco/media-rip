@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useConfigStore } from '@/stores/config'
@@ -21,6 +21,20 @@ const welcomeMessage = ref('')
 const defaultVideoFormat = ref('auto')
 const defaultAudioFormat = ref('auto')
 const settingsSaved = ref(false)
+
+// Change password state
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+const changingPassword = ref(false)
+const passwordChanged = ref(false)
+const passwordError = ref<string | null>(null)
+
+const canChangePassword = computed(() =>
+  currentPassword.value.length > 0 &&
+  newPassword.value.length >= 4 &&
+  newPassword.value === confirmPassword.value
+)
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -58,6 +72,44 @@ async function saveSettings() {
     await configStore.loadConfig()
     settingsSaved.value = true
     setTimeout(() => { settingsSaved.value = false }, 3000)
+  }
+}
+
+async function changePassword() {
+  if (!canChangePassword.value) return
+  changingPassword.value = true
+  passwordChanged.value = false
+  passwordError.value = null
+
+  try {
+    const res = await fetch('/api/admin/password', {
+      method: 'PUT',
+      headers: {
+        'Authorization': 'Basic ' + btoa(store.username + ':' + store.password),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        current_password: currentPassword.value,
+        new_password: newPassword.value,
+      }),
+    })
+
+    if (res.ok) {
+      // Update stored credentials to use new password
+      store.password = newPassword.value
+      currentPassword.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
+      passwordChanged.value = true
+      setTimeout(() => { passwordChanged.value = false }, 3000)
+    } else {
+      const data = await res.json()
+      passwordError.value = data.detail || 'Failed to change password'
+    }
+  } catch {
+    passwordError.value = 'Network error'
+  } finally {
+    changingPassword.value = false
   }
 }
 
@@ -256,6 +308,47 @@ function formatFilesize(bytes: number | null): string {
         <p class="field-hint" style="margin-top: var(--space-md);">
           Changes are applied immediately but reset on server restart.
         </p>
+
+        <hr class="settings-divider" />
+
+        <div class="settings-field">
+          <label>Change Password</label>
+          <p class="field-hint">Update the admin password. Takes effect immediately but resets on server restart.</p>
+          <div class="password-fields">
+            <input
+              v-model="currentPassword"
+              type="password"
+              placeholder="Current password"
+              autocomplete="current-password"
+              class="settings-input"
+            />
+            <input
+              v-model="newPassword"
+              type="password"
+              placeholder="New password"
+              autocomplete="new-password"
+              class="settings-input"
+            />
+            <input
+              v-model="confirmPassword"
+              type="password"
+              placeholder="Confirm new password"
+              autocomplete="new-password"
+              class="settings-input"
+            />
+          </div>
+          <div class="settings-actions" style="margin-top: var(--space-sm);">
+            <button
+              @click="changePassword"
+              :disabled="!canChangePassword || changingPassword"
+              class="btn-save"
+            >
+              {{ changingPassword ? 'Changing…' : 'Change Password' }}
+            </button>
+            <span v-if="passwordChanged" class="save-confirm">✓ Password changed</span>
+            <span v-if="passwordError" class="password-error">{{ passwordError }}</span>
+          </div>
+        </div>
       </div>
     </template>
   </div>
@@ -485,6 +578,41 @@ h3 {
 .settings-select:focus {
   outline: none;
   border-color: var(--color-accent);
+}
+
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-lg) 0;
+}
+
+.password-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  max-width: 320px;
+}
+
+.settings-input {
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.password-error {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
 }
 
 /* Expandable session rows */

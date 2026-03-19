@@ -24,11 +24,11 @@ const isAnalyzing = ref(false)
 const analyzePhase = ref<string>('')
 const analyzeError = ref<string | null>(null)
 const phaseMessages = [
-  'Peeking at the URL…',
-  'Interrogating the server…',
-  'Decoding the matrix…',
-  'Sniffing out formats…',
-  'Almost there…',
+  'Scanning the airwaves…',
+  'Negotiating with the server…',
+  'Cracking the codec…',
+  'Reading the fine print…',
+  'Locking on target…',
 ]
 let phaseTimer: ReturnType<typeof setInterval> | null = null
 

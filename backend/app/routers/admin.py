@@ -208,3 +208,59 @@ async def update_settings(
             logger.info("Admin updated default_audio_format to: %s", fmt)
 
     return {"updated": updated, "status": "ok"}
+
+
+@router.put("/password")
+async def change_password(
+    request: Request,
+    _admin: str = Depends(require_admin),
+) -> dict:
+    """Change admin password (in-memory only — resets on restart).
+
+    Accepts JSON body:
+      - current_password: str (required, must match current password)
+      - new_password: str (required, min 4 chars)
+    """
+    import bcrypt
+
+    body = await request.json()
+    current = body.get("current_password", "")
+    new_pw = body.get("new_password", "")
+
+    if not current or not new_pw:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "current_password and new_password are required"},
+        )
+
+    if len(new_pw) < 4:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "New password must be at least 4 characters"},
+        )
+
+    # Verify current password
+    config = request.app.state.config
+    try:
+        valid = bcrypt.checkpw(
+            current.encode("utf-8"),
+            config.admin.password_hash.encode("utf-8"),
+        )
+    except (ValueError, TypeError):
+        valid = False
+
+    if not valid:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Current password is incorrect"},
+        )
+
+    # Hash and store new password
+    new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    config.admin.password_hash = new_hash
+    logger.info("Admin password changed by user '%s'", _admin)
+
+    return {"status": "ok", "message": "Password changed successfully"}

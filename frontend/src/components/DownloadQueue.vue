@@ -235,16 +235,27 @@ function handleClear(): void {
   .queue-toolbar {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-sm);
   }
 
   .queue-filters {
+    display: flex;
+    gap: var(--space-xs);
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
   }
 
   .queue-actions {
-    justify-content: flex-end;
+    display: flex;
+    gap: var(--space-xs);
+  }
+
+  .queue-actions .btn-download-all,
+  .queue-actions .btn-clear {
+    flex: 1;
+    min-height: var(--touch-min);
+    justify-content: center;
   }
 
   .filter-btn {
