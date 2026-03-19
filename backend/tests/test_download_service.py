@@ -33,7 +33,10 @@ async def download_env(tmp_path):
     dl_dir.mkdir()
     db_path = str(tmp_path / "test.db")
 
-    config = AppConfig(downloads={"output_dir": str(dl_dir)})
+    config = AppConfig(
+        server={"data_dir": str(tmp_path / "data")},
+        downloads={"output_dir": str(dl_dir)},
+    )
     db = await init_db(db_path)
     loop = asyncio.get_running_loop()
     broker = SSEBroker(loop)

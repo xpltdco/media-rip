@@ -1,12 +1,10 @@
-# media.rip() — Docker Compose example with Caddy reverse proxy
+# media.rip() — Docker Compose with Caddy reverse proxy (recommended for production)
 #
-# This is the recommended deployment configuration.
 # Caddy automatically provisions TLS certificates via Let's Encrypt.
 #
-# Usage:
-#   1. Replace YOUR_DOMAIN with your actual domain
-#   2. Set a strong admin password hash (see below)
-#   3. Run: docker compose up -d
+# Setup:
+#   1. Copy .env.example to .env and fill in your values
+#   2. Run: docker compose -f docker-compose.example.yml up -d
 #
 # Generate a bcrypt password hash:
 #   docker run --rm python:3.12-slim python -c \
@@ -18,19 +16,21 @@ services:
     container_name: media-rip
     restart: unless-stopped
     volumes:
-      - downloads:/downloads
-      - data:/data
-      # Optional: custom themes
-      # - ./themes:/themes:ro
-      # Optional: config file
-      # - ./config.yaml:/app/config.yaml:ro
+      - downloads:/downloads         # Downloaded media files
+      - data:/data                   # Database, sessions, error logs
+      # Optional:
+      # - ./themes:/themes:ro        # Custom theme CSS overrides
+      # - ./config.yaml:/app/config.yaml:ro  # YAML config file
     environment:
-      # Admin panel (optional — remove to disable)
+      # Admin panel
       MEDIARIP__ADMIN__ENABLED: "true"
-      MEDIARIP__ADMIN__USERNAME: "admin"
+      MEDIARIP__ADMIN__USERNAME: "${ADMIN_USERNAME:-admin}"
       MEDIARIP__ADMIN__PASSWORD_HASH: "${ADMIN_PASSWORD_HASH}"
       # Session mode: isolated (default), shared, or open
-      # MEDIARIP__SESSION__MODE: "isolated"
+      MEDIARIP__SESSION__MODE: "${SESSION_MODE:-isolated}"
+      # Auto-purge (optional)
+      # MEDIARIP__PURGE__ENABLED: "true"
+      # MEDIARIP__PURGE__MAX_AGE_HOURS: "168"
     expose:
       - "8000"
     healthcheck:

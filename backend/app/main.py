@@ -57,6 +57,10 @@ async def lifespan(app: FastAPI):
         )
 
     # --- Database ---
+    # Ensure data directory exists for DB and session state
+    data_dir = Path(config.server.data_dir)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
     db = await init_db(config.server.db_path)
     logger.info("Database initialised at %s", config.server.db_path)
 

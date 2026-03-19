@@ -39,6 +39,7 @@ class ServerConfig(BaseModel):
     port: int = 8000
     log_level: str = "info"
     db_path: str = "mediarip.db"
+    data_dir: str = "/data"
 
 
 class DownloadsConfig(BaseModel):

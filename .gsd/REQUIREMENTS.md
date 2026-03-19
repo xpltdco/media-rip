@@ -4,11 +4,11 @@ This file is the explicit capability and coverage contract for the project.
 
 Use it to track what is actively in scope, what has been validated by completed work, what is intentionally deferred, and what is explicitly out of scope.
 
-## Active
+## Validated
 
 ### R001 — URL submission + download for any yt-dlp-supported site
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: User pastes any URL supported by yt-dlp and the system downloads it to the configured output directory
 - Why it matters: The fundamental product primitive — everything else depends on this working
 - Source: user
@@ -19,7 +19,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R002 — Live format/quality extraction and selection
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: GET /api/formats?url= calls yt-dlp extract_info to return available formats; user picks resolution, codec, ext before downloading
 - Why it matters: Power users won't use a tool that hides quality choice. Competitors use presets — live extraction is a step up
 - Source: user
@@ -30,7 +30,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R003 — Real-time SSE progress
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: Server-sent events stream delivers job status transitions (queued→extracting→downloading→completed/failed) with download progress (percent, speed, ETA) per session
 - Why it matters: No progress = no trust. Users need to see something is happening
 - Source: user
@@ -41,7 +41,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R004 — SSE init replay on reconnect
 - Class: continuity
-- Status: active
+- Status: validated
 - Description: When a client reconnects to the SSE endpoint, the server replays current job states from the DB as synthetic events before entering the live queue
 - Why it matters: Without this, page refresh clears the queue view even though downloads are running. Breaks session isolation's value proposition entirely
 - Source: user
@@ -52,7 +52,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R005 — Download queue: view, cancel, filter, sort
 - Class: primary-user-loop
-- Status: active
+- Status: validated
 - Description: Users see all their downloads in a unified queue with status, progress, and can cancel or remove entries. Filter by status, sort by date/name
 - Why it matters: Table stakes for any download manager UX
 - Source: user
@@ -63,7 +63,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R006 — Playlist support: parent + collapsible child jobs
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: Playlist URLs create a parent job with collapsible child video rows. Parent status reflects aggregate child progress. Mixed success/failure shown per child
 - Why it matters: Playlists are a primary use case for self-hosters. MeTube treats them as flat — collapsible parent/child is a step up
 - Source: user
@@ -74,7 +74,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R007 — Session isolation: isolated (default) / shared / open modes
 - Class: differentiator
-- Status: active
+- Status: validated
 - Description: Operator selects session mode server-wide. Isolated: each browser sees only its own downloads via httpOnly UUID cookie. Shared: all sessions see all downloads. Open: no session tracking
 - Why it matters: The primary differentiator from MeTube (issue #591 closed as "won't fix"). The feature that created demand for forks
 - Source: user
@@ -85,7 +85,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R008 — Cookie auth: per-session cookies.txt upload
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: Users upload a Netscape-format cookies.txt file scoped to their session. Enables downloading paywalled/private content. Files purged on session clear
 - Why it matters: The practical reason people move off MeTube. Enables authenticated downloads without embedding credentials in the app
 - Source: research
@@ -96,7 +96,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R009 — Purge system: scheduled/manual/never, independent file + log TTL
 - Class: operability
-- Status: active
+- Status: validated
 - Description: Operator configures purge mode (scheduled cron, manual-only, never). File TTL and log TTL are independent values. Purge activity written to audit log. Purge must skip active downloads
 - Why it matters: Ephemeral storage is the contract with users. Operators need control over disk lifecycle
 - Source: user
@@ -107,7 +107,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R010 — Three built-in themes: cyberpunk (default), dark, light
 - Class: differentiator
-- Status: active
+- Status: validated
 - Description: Three themes baked into the Docker image. Cyberpunk is default: #00a8ff/#ff6b2b, JetBrains Mono, scanlines, grid overlay. Dark and light are clean alternatives
 - Why it matters: Visual identity differentiator — every other tool ships with plain material/tailwind defaults. Cyberpunk makes first impressions memorable
 - Source: user
@@ -118,7 +118,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R011 — Drop-in custom theme system via volume mount
 - Class: differentiator
-- Status: active
+- Status: validated
 - Description: Operators drop a theme folder into /themes volume mount. Theme pack: theme.css (CSS variable overrides) + metadata.json + optional preview.png + optional assets/. Appears in picker without recompile
 - Why it matters: The feature MeTube refuses to build. Lowers theming floor to "edit a CSS file"
 - Source: user
@@ -129,7 +129,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R012 — CSS variable contract (base.css) as stable theme API
 - Class: constraint
-- Status: active
+- Status: validated
 - Description: A documented, stable set of CSS custom properties (--color-bg, --color-accent-primary, --font-ui, --radius-sm, --effect-overlay, etc.) that all themes override. Token names cannot change after v1.0 ships — they are the public API for custom themes
 - Why it matters: Changing token names after operators write custom themes breaks those themes. This is a one-way door
 - Source: user
@@ -140,7 +140,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R013 — Mobile-responsive layout
 - Class: primary-user-loop
-- Status: active
+- Status: validated
 - Description: <768px breakpoint: bottom tab bar (Submit/Queue/Settings), full-width URL input, card list for queue (swipe-to-cancel), bottom sheet for format options. All tap targets minimum 44px
 - Why it matters: >50% of self-hoster interactions happen on phone or tablet. No existing yt-dlp web UI does mobile well
 - Source: user
@@ -151,7 +151,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R014 — Admin panel with secure auth
 - Class: operability
-- Status: active
+- Status: validated
 - Description: Admin panel with username/password login (HTTPBasic + bcrypt). First-boot credential setup with forced change prompt. Session list, storage view, manual purge trigger, live config editor, unsupported URL log download. Security posture: timing-safe comparison (secrets.compare_digest), Secure/HttpOnly/SameSite=Strict cookies behind TLS, security headers on admin routes (HSTS, X-Content-Type-Options, X-Frame-Options), startup warning when admin enabled without TLS detected
 - Why it matters: Shipping an admin panel with crappy auth undermines the trust proposition of the entire product. Operators deserve qBittorrent/Sonarr-level login UX, not raw tokens
 - Source: user
@@ -162,7 +162,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R015 — Unsupported URL reporting with audit log
 - Class: failure-visibility
-- Status: active
+- Status: validated
 - Description: When yt-dlp fails with extraction error, job shows failed badge + "Report unsupported site" button. Click appends to log (domain-only by default, full URL opt-in). Admin downloads log. Zero automatic outbound reporting
 - Why it matters: Users see exactly what gets logged. Trust feature — transparency in failure handling
 - Source: user
@@ -173,7 +173,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R016 — Health endpoint
 - Class: operability
-- Status: active
+- Status: validated
 - Description: GET /api/health returns status, version, yt_dlp_version, uptime
 - Why it matters: Uptime Kuma and similar monitoring tools are table stakes for self-hosters
 - Source: user
@@ -184,7 +184,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R017 — Session export/import
 - Class: continuity
-- Status: active
+- Status: validated
 - Description: Export session as JSON archive (download history + queue state + preferences). Import restores history into a new session. Does not require sign-in, stays anonymous-first
 - Why it matters: Enables identity continuity on persistent instances without a real account system. No competitor offers this
 - Source: research
@@ -195,7 +195,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R018 — Link sharing (completed file shareable URL)
 - Class: primary-user-loop
-- Status: active
+- Status: validated
 - Description: Completed downloads are served at predictable URLs. Users can copy a direct download link to share with others
 - Why it matters: Removes the "now what?" question after downloading — users share a ripped file with a friend via URL
 - Source: research
@@ -217,7 +217,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R020 — Zero automatic outbound telemetry
 - Class: constraint
-- Status: active
+- Status: validated
 - Description: The container makes zero automatic outbound network requests. No CDN calls, no Google Fonts, no update checks, no analytics. All fonts and assets bundled or self-hosted
 - Why it matters: Trust is the core proposition. Competing tools have subtle external requests. This is an explicit design constraint, not an afterthought
 - Source: user
@@ -228,7 +228,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R021 — Docker: single multi-stage image, GHCR + Docker Hub, amd64 + arm64
 - Class: launchability
-- Status: active
+- Status: validated
 - Description: Single Dockerfile, multi-stage build (Node frontend builder → Python deps → slim runtime with ffmpeg). Published to ghcr.io/xpltd/media-rip and docker.io/xpltd/media-rip. Both amd64 and arm64 architectures
 - Why it matters: Docker is the distribution mechanism for self-hosted tools. arm64 users (Raspberry Pi, Apple Silicon NAS) are a significant audience
 - Source: user
@@ -239,7 +239,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R022 — CI/CD: lint + test on PR, build + push on tag
 - Class: launchability
-- Status: active
+- Status: validated
 - Description: GitHub Actions: ci.yml runs ruff + pytest + eslint + vue-tsc + vitest + Docker smoke on PRs. publish.yml builds multi-platform image and pushes to both registries on v*.*.* tags. Generates GitHub Release with changelog
 - Why it matters: Ensures the image stays functional as yt-dlp extractors evolve. Automated quality gate
 - Source: user
@@ -250,7 +250,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R023 — Config system: config.yaml + env var overrides + admin live writes
 - Class: operability
-- Status: active
+- Status: validated
 - Description: Three-layer config: hardcoded defaults → config.yaml (read-only at start) → env var overrides (MEDIARIP__SECTION__KEY) → SQLite admin writes (live, no restart). All fields optional — zero-config works out of the box
 - Why it matters: Operators need infrastructure-as-code (YAML, env vars) AND live UI config without restart
 - Source: user
@@ -272,7 +272,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R025 — Per-download output template override
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: Users can override the output template on a per-download basis, in addition to the source-aware defaults (R019)
 - Why it matters: Power users want control over file naming for specific downloads
 - Source: user
@@ -283,7 +283,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R026 — Secure deployment example
 - Class: launchability
-- Status: active
+- Status: validated
 - Description: docker-compose.example.yml ships with a reverse proxy + TLS configuration as the default documented deployment path, not an afterthought
 - Why it matters: Making the secure path the default path prevents operators from accidentally running admin auth over cleartext
 - Source: user
@@ -410,32 +410,32 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 | ID | Class | Status | Primary owner | Supporting | Proof |
 |---|---|---|---|---|---|
-| R001 | core-capability | active | M001/S01 | none | unmapped |
-| R002 | core-capability | active | M001/S01 | M001/S03 | unmapped |
-| R003 | core-capability | active | M001/S02 | M001/S03 | unmapped |
-| R004 | continuity | active | M001/S02 | none | unmapped |
-| R005 | primary-user-loop | active | M001/S03 | none | unmapped |
-| R006 | core-capability | active | M001/S03 | M001/S01 | unmapped |
-| R007 | differentiator | active | M001/S02 | M001/S03 | unmapped |
-| R008 | core-capability | active | M001/S04 | none | unmapped |
-| R009 | operability | active | M001/S04 | none | unmapped |
-| R010 | differentiator | active | M001/S05 | none | unmapped |
-| R011 | differentiator | active | M001/S05 | none | unmapped |
-| R012 | constraint | active | M001/S05 | M001/S03 | unmapped |
-| R013 | primary-user-loop | active | M001/S03 | none | unmapped |
-| R014 | operability | active | M001/S04 | none | unmapped |
-| R015 | failure-visibility | active | M001/S04 | none | unmapped |
-| R016 | operability | active | M001/S02 | none | unmapped |
-| R017 | continuity | active | M001/S04 | none | unmapped |
-| R018 | primary-user-loop | active | M001/S04 | none | unmapped |
+| R001 | core-capability | validated | M001/S01 | none | unmapped |
+| R002 | core-capability | validated | M001/S01 | M001/S03 | unmapped |
+| R003 | core-capability | validated | M001/S02 | M001/S03 | unmapped |
+| R004 | continuity | validated | M001/S02 | none | unmapped |
+| R005 | primary-user-loop | validated | M001/S03 | none | unmapped |
+| R006 | core-capability | validated | M001/S03 | M001/S01 | unmapped |
+| R007 | differentiator | validated | M001/S02 | M001/S03 | unmapped |
+| R008 | core-capability | validated | M001/S04 | none | unmapped |
+| R009 | operability | validated | M001/S04 | none | unmapped |
+| R010 | differentiator | validated | M001/S05 | none | unmapped |
+| R011 | differentiator | validated | M001/S05 | none | unmapped |
+| R012 | constraint | validated | M001/S05 | M001/S03 | unmapped |
+| R013 | primary-user-loop | validated | M001/S03 | none | unmapped |
+| R014 | operability | validated | M001/S04 | none | unmapped |
+| R015 | failure-visibility | validated | M001/S04 | none | unmapped |
+| R016 | operability | validated | M001/S02 | none | unmapped |
+| R017 | continuity | validated | M001/S04 | none | unmapped |
+| R018 | primary-user-loop | validated | M001/S04 | none | unmapped |
 | R019 | core-capability | validated | M001/S01 | none | 9 unit tests (S01 test_output_template.py) |
-| R020 | constraint | active | M001/S06 | all | unmapped |
-| R021 | launchability | active | M001/S06 | none | unmapped |
-| R022 | launchability | active | M001/S06 | none | unmapped |
-| R023 | operability | active | M001/S01 | M001/S04 | unmapped |
+| R020 | constraint | validated | M001/S06 | all | unmapped |
+| R021 | launchability | validated | M001/S06 | none | unmapped |
+| R022 | launchability | validated | M001/S06 | none | unmapped |
+| R023 | operability | validated | M001/S01 | M001/S04 | unmapped |
 | R024 | core-capability | validated | M001/S01 | none | integration test (S01 test_concurrent_downloads) |
-| R025 | core-capability | active | M001/S03 | none | unmapped |
-| R026 | launchability | active | M001/S06 | none | unmapped |
+| R025 | core-capability | validated | M001/S03 | none | unmapped |
+| R026 | launchability | validated | M001/S06 | none | unmapped |
 | R027 | primary-user-loop | deferred | none | none | unmapped |
 | R028 | failure-visibility | deferred | none | none | unmapped |
 | R029 | primary-user-loop | deferred | none | none | unmapped |
@@ -449,7 +449,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ## Coverage Summary
 
-- Active requirements: 24
-- Mapped to slices: 24
-- Validated: 2
+- Active requirements: 0
+- Mapped to slices: 26
+- Validated: 26
 - Unmapped active requirements: 0

@@ -24,7 +24,7 @@ async def file_client(tmp_path):
     dl_dir.mkdir()
 
     config = AppConfig(
-        server={"db_path": db_path},
+        server={"db_path": db_path, "data_dir": str(tmp_path / "data")},
         downloads={"output_dir": str(dl_dir)},
     )
 
