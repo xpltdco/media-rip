@@ -2,10 +2,12 @@
 import { ref, computed, watch } from 'vue'
 import { api } from '@/api/client'
 import { useDownloadsStore } from '@/stores/downloads'
+import { useConfigStore } from '@/stores/config'
 import FormatPicker from './FormatPicker.vue'
 import type { FormatInfo, UrlInfo } from '@/api/types'
 
 const store = useDownloadsStore()
+const configStore = useConfigStore()
 
 const url = ref('')
 const formats = ref<FormatInfo[]>([])
@@ -33,6 +35,19 @@ const videoFormats = ['auto', 'mp4', 'webm'] as const
 const availableFormats = computed(() =>
   mediaType.value === 'audio' ? audioFormats : videoFormats
 )
+
+/** Resolve the actual output format to send to the backend.
+ *  If 'auto' and admin has set a default, use that instead of null.
+ */
+const effectiveOutputFormat = computed(() => {
+  if (outputFormat.value !== 'auto') return outputFormat.value
+  const cfg = configStore.config
+  if (!cfg) return null
+  const adminDefault = mediaType.value === 'audio'
+    ? cfg.default_audio_format
+    : cfg.default_video_format
+  return adminDefault && adminDefault !== 'auto' ? adminDefault : null
+})
 
 // Persist preferences and reset output format when switching media type
 watch(mediaType, (val) => {
@@ -105,7 +120,7 @@ async function submitDownload(): Promise<void> {
           format_id: selectedFormatId.value,
           quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
           media_type: mediaType.value,
-          output_format: outputFormat.value === 'auto' ? null : outputFormat.value,
+          output_format: effectiveOutputFormat.value,
         })
       }
     } else {
@@ -114,7 +129,7 @@ async function submitDownload(): Promise<void> {
         format_id: selectedFormatId.value,
         quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
         media_type: mediaType.value,
-        output_format: outputFormat.value === 'auto' ? null : outputFormat.value,
+        output_format: effectiveOutputFormat.value,
       })
     }
     // Reset form on success
@@ -214,6 +229,11 @@ function toggleOptions(): void {
 
 function formatLabel(fmt: string): string {
   if (fmt === 'auto') {
+    // Show what format will actually be used
+    const effective = effectiveOutputFormat.value
+    if (effective) {
+      return `Auto (.${effective})`
+    }
     if (urlInfo.value?.default_ext) {
       return `Auto (.${urlInfo.value.default_ext})`
     }

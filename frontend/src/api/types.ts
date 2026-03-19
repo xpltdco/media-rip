@@ -73,6 +73,8 @@ export interface PublicConfig {
   welcome_message: string
   purge_enabled: boolean
   max_concurrent_downloads: number
+  default_video_format: string
+  default_audio_format: string
 }
 
 export interface HealthStatus {

@@ -31,6 +31,8 @@ describe('config store', () => {
       welcome_message: 'Test welcome',
       purge_enabled: false,
       max_concurrent_downloads: 3,
+      default_video_format: 'auto',
+      default_audio_format: 'auto',
     }
     vi.mocked(api.getPublicConfig).mockResolvedValue(mockConfig)
 

@@ -32,4 +32,6 @@ async def public_config(request: Request) -> dict:
         ),
         "purge_enabled": config.purge.enabled,
         "max_concurrent_downloads": config.downloads.max_concurrent,
+        "default_video_format": overrides.get("default_video_format", "auto"),
+        "default_audio_format": overrides.get("default_audio_format", "auto"),
     }
