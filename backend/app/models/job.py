@@ -25,6 +25,8 @@ class JobCreate(BaseModel):
     format_id: str | None = None
     quality: str | None = None
     output_template: str | None = None
+    media_type: str | None = None       # "video" | "audio"
+    output_format: str | None = None    # e.g. "mp3", "wav", "mp4", "webm"
 
 
 class Job(BaseModel):
