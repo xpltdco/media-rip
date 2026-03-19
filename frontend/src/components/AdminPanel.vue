@@ -23,7 +23,6 @@ const defaultAudioFormat = ref('auto')
 const settingsSaved = ref(false)
 const privacyMode = ref(false)
 const privacyRetentionHours = ref(24)
-const privacySaved = ref(false)
 const purgeConfirming = ref(false)
 let purgeConfirmTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -67,30 +66,19 @@ async function switchTab(tab: typeof activeTab.value) {
   }
 }
 
-async function saveSettings() {
+async function saveAllSettings() {
   settingsSaved.value = false
   const ok = await store.updateSettings({
     welcome_message: welcomeMessage.value,
     default_video_format: defaultVideoFormat.value,
     default_audio_format: defaultAudioFormat.value,
-  })
-  if (ok) {
-    await configStore.loadConfig()
-    settingsSaved.value = true
-    setTimeout(() => { settingsSaved.value = false }, 3000)
-  }
-}
-
-async function savePrivacy() {
-  privacySaved.value = false
-  const ok = await store.updateSettings({
     privacy_mode: privacyMode.value,
     privacy_retention_hours: privacyRetentionHours.value,
   })
   if (ok) {
     await configStore.loadConfig()
-    privacySaved.value = true
-    setTimeout(() => { privacySaved.value = false }, 3000)
+    settingsSaved.value = true
+    setTimeout(() => { settingsSaved.value = false }, 3000)
   }
 }
 
@@ -271,10 +259,8 @@ function formatFilesize(bytes: number | null): string {
 
       <!-- Settings tab -->
       <div v-if="activeTab === 'settings'" class="tab-content">
-        <!-- Section: Appearance & Defaults -->
-        <div class="settings-section">
-          <h3 class="section-heading">Appearance &amp; Defaults</h3>
-
+        <!-- All configurable settings in one form -->
+        <div class="settings-form">
           <div class="settings-field">
             <label for="welcome-msg">Welcome Message</label>
             <p class="field-hint">Displayed above the URL input on the main page. Leave empty to hide.</p>
@@ -287,7 +273,7 @@ function formatFilesize(bytes: number | null): string {
             ></textarea>
           </div>
 
-          <div class="settings-field" style="margin-top: var(--space-lg);">
+          <div class="settings-field">
             <label>Default Output Formats</label>
             <p class="field-hint">When "Auto" is selected, files are converted to these formats instead of the native container.</p>
             <div class="format-defaults">
@@ -312,20 +298,6 @@ function formatFilesize(bytes: number | null): string {
               </div>
             </div>
           </div>
-
-          <div class="settings-actions">
-            <button @click="saveSettings" :disabled="store.isLoading" class="btn-save">
-              {{ store.isLoading ? 'Saving…' : 'Save' }}
-            </button>
-            <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
-          </div>
-        </div>
-
-        <hr class="settings-divider" />
-
-        <!-- Section: Privacy & Data -->
-        <div class="settings-section">
-          <h3 class="section-heading">Privacy &amp; Data</h3>
 
           <div class="settings-field">
             <label class="toggle-label">
@@ -357,93 +329,90 @@ function formatFilesize(bytes: number | null): string {
             </div>
           </div>
 
-          <div class="settings-actions">
-            <button @click="savePrivacy" :disabled="store.isLoading" class="btn-save">
-              {{ store.isLoading ? 'Saving…' : 'Save' }}
+          <div class="settings-actions settings-save-row">
+            <button @click="saveAllSettings" :disabled="store.isLoading" class="btn-save">
+              {{ store.isLoading ? 'Saving…' : 'Save Settings' }}
             </button>
-            <span v-if="privacySaved" class="save-confirm">✓ Saved</span>
+            <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
           </div>
+          <p class="field-hint">
+            Settings are applied immediately but reset on server restart.
+          </p>
+        </div>
 
-          <div class="settings-field" style="margin-top: var(--space-lg);">
-            <label>Manual Purge</label>
-            <p class="field-hint">
-              Immediately clear all completed and failed downloads — removes
-              database records, files from disk, and orphaned sessions.
-              Active downloads are never affected.
-            </p>
-            <button
-              @click="handlePurgeClick"
-              :disabled="store.isLoading"
-              class="btn-purge"
-              :class="{ 'btn-confirm': purgeConfirming }"
-            >
-              {{ store.isLoading ? 'Purging…' : purgeConfirming ? 'Sure?' : 'Run Purge Now' }}
-            </button>
-            <div v-if="store.purgeResult" class="purge-result">
-              <p>{{ store.purgeResult.rows_deleted }} jobs removed</p>
-              <p>{{ store.purgeResult.files_deleted }} files deleted</p>
-              <p v-if="store.purgeResult.sessions_deleted">{{ store.purgeResult.sessions_deleted }} sessions cleared</p>
-              <p v-if="store.purgeResult.active_skipped">{{ store.purgeResult.active_skipped }} active jobs skipped</p>
-            </div>
+        <hr class="settings-divider" />
+
+        <!-- Actions (not "settings" — these are immediate operations) -->
+        <div class="settings-field">
+          <label>Manual Purge</label>
+          <p class="field-hint">
+            Immediately clear all completed and failed downloads — removes
+            database records, files from disk, and orphaned sessions.
+            Active downloads are never affected.
+          </p>
+          <button
+            @click="handlePurgeClick"
+            :disabled="store.isLoading"
+            class="btn-purge"
+            :class="{ 'btn-confirm': purgeConfirming }"
+          >
+            {{ store.isLoading ? 'Purging…' : purgeConfirming ? 'Sure?' : 'Run Purge Now' }}
+          </button>
+          <div v-if="store.purgeResult" class="purge-result">
+            <p>{{ store.purgeResult.rows_deleted }} jobs removed</p>
+            <p>{{ store.purgeResult.files_deleted }} files deleted</p>
+            <p v-if="store.purgeResult.sessions_deleted">{{ store.purgeResult.sessions_deleted }} sessions cleared</p>
+            <p v-if="store.purgeResult.active_skipped">{{ store.purgeResult.active_skipped }} active jobs skipped</p>
           </div>
         </div>
 
         <hr class="settings-divider" />
 
-        <!-- Section: Security -->
-        <div class="settings-section">
-          <h3 class="section-heading">Security</h3>
-
-          <div class="settings-field">
-            <label>Change Password</label>
-            <p class="field-hint">Update the admin password. Takes effect immediately but resets on server restart.</p>
-            <div class="password-fields">
-              <input
-                v-model="currentPassword"
-                type="password"
-                placeholder="Current password"
-                autocomplete="current-password"
-                class="settings-input"
-              />
-              <input
-                v-model="newPassword"
-                type="password"
-                placeholder="New password"
-                autocomplete="new-password"
-                class="settings-input"
-              />
-              <input
-                v-model="confirmPassword"
-                type="password"
-                placeholder="Confirm new password"
-                autocomplete="new-password"
-                class="settings-input"
-                @keydown.enter="changePassword"
-              />
-              <span
-                v-if="confirmPassword && newPassword && confirmPassword !== newPassword"
-                class="password-mismatch"
-              >
-                Passwords don't match
-              </span>
-            </div>
-            <div class="settings-actions" style="margin-top: var(--space-sm);">
-              <button
-                @click="changePassword"
-                :disabled="!canChangePassword || changingPassword"
-                class="btn-save"
-              >
-                {{ changingPassword ? 'Changing…' : 'Change Password' }}
-              </button>
-              <span v-if="passwordChanged" class="save-confirm">✓ Password changed</span>
-              <span v-if="passwordError" class="password-error">{{ passwordError }}</span>
-            </div>
+        <div class="settings-field">
+          <label>Change Password</label>
+          <p class="field-hint">Takes effect immediately but resets on server restart.</p>
+          <div class="password-fields">
+            <input
+              v-model="currentPassword"
+              type="password"
+              placeholder="Current password"
+              autocomplete="current-password"
+              class="settings-input"
+            />
+            <input
+              v-model="newPassword"
+              type="password"
+              placeholder="New password"
+              autocomplete="new-password"
+              class="settings-input"
+            />
+            <input
+              v-model="confirmPassword"
+              type="password"
+              placeholder="Confirm new password"
+              autocomplete="new-password"
+              class="settings-input"
+              @keydown.enter="changePassword"
+            />
+            <span
+              v-if="confirmPassword && newPassword && confirmPassword !== newPassword"
+              class="password-mismatch"
+            >
+              Passwords don't match
+            </span>
+          </div>
+          <div class="settings-actions" style="margin-top: var(--space-sm);">
+            <button
+              @click="changePassword"
+              :disabled="!canChangePassword || changingPassword"
+              class="btn-save"
+            >
+              {{ changingPassword ? 'Changing…' : 'Change Password' }}
+            </button>
+            <span v-if="passwordChanged" class="save-confirm">✓ Password changed</span>
+            <span v-if="passwordError" class="password-error">{{ passwordError }}</span>
           </div>
         </div>
-
-        <p class="field-hint" style="margin-top: var(--space-lg);">
-          All settings are applied immediately but reset on server restart.
-        </p>
       </div>
     </template>
   </div>
@@ -590,6 +559,26 @@ h3 {
 
 .settings-section {
   margin-bottom: var(--space-sm);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.settings-form .settings-field {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-form .settings-field:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-save-row {
+  padding-top: var(--space-sm);
 }
 
 .section-heading {
