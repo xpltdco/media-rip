@@ -446,6 +446,19 @@ class DownloadService:
                              "speed": None, "eta": None, "filename": None,
                              "error_message": str(e)},
                 })
+                # Log to error_log table for admin visibility
+                from app.core.database import log_download_error
+                asyncio.run_coroutine_threadsafe(
+                    log_download_error(
+                        self._db,
+                        url=url,
+                        error=str(e),
+                        session_id=session_id,
+                        format_id=opts.get("format"),
+                        media_type=opts.get("_media_type"),
+                    ),
+                    self._loop,
+                )
             except Exception:
                 logger.exception("Job %s failed to update status after error", job_id)
 

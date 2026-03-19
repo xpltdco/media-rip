@@ -128,6 +128,43 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  // Error log
+  interface ErrorLogEntry {
+    id: number
+    url: string
+    domain: string | null
+    error: string
+    format_id: string | null
+    media_type: string | null
+    session_id: string | null
+    created_at: string
+  }
+
+  const errorLog = ref<ErrorLogEntry[]>([])
+
+  async function loadErrorLog(): Promise<void> {
+    const res = await fetch('/api/admin/errors', { headers: _authHeaders() })
+    if (res.ok) {
+      const data = await res.json()
+      errorLog.value = data.errors
+    }
+  }
+
+  async function clearErrorLog(): Promise<void> {
+    isLoading.value = true
+    try {
+      const res = await fetch('/api/admin/errors', {
+        method: 'DELETE',
+        headers: _authHeaders(),
+      })
+      if (res.ok) {
+        errorLog.value = []
+      }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     username,
     password,
@@ -137,11 +174,14 @@ export const useAdminStore = defineStore('admin', () => {
     storage,
     purgeResult,
     isLoading,
+    errorLog,
     login,
     logout,
     loadSessions,
     loadStorage,
     triggerPurge,
     updateSettings,
+    loadErrorLog,
+    clearErrorLog,
   }
 })
