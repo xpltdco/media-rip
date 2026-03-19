@@ -229,6 +229,47 @@ class DownloadService:
             key=lambda fi: _parse_resolution_height(fi.resolution),
             reverse=True,
         )
+
+        # Add synthetic "best quality" entries at the top.
+        # yt-dlp can merge separate video+audio streams for best quality,
+        # but those don't appear as pre-muxed formats in the format list.
+        best_video = None
+        best_audio = None
+        for f in formats_raw:
+            vcodec = f.get("vcodec", "none")
+            acodec = f.get("acodec", "none")
+            height = f.get("height") or 0
+            if vcodec and vcodec != "none" and height > 0:
+                if best_video is None or height > (best_video.get("height") or 0):
+                    best_video = f
+            if acodec and acodec != "none" and (vcodec == "none" or not vcodec):
+                if best_audio is None:
+                    best_audio = f
+
+        if best_video:
+            bv_height = best_video.get("height", 0)
+            bv_res = f"{best_video.get('width', '?')}x{bv_height}"
+            # Only add if the best separate video exceeds the best pre-muxed
+            best_premuxed_height = 0
+            for f in formats_raw:
+                vc = f.get("vcodec", "none")
+                ac = f.get("acodec", "none")
+                if vc and vc != "none" and ac and ac != "none":
+                    h = f.get("height") or 0
+                    if h > best_premuxed_height:
+                        best_premuxed_height = h
+
+            if bv_height > best_premuxed_height:
+                result.insert(0, FormatInfo(
+                    format_id="bestvideo+bestaudio/best",
+                    ext=best_video.get("ext", "webm"),
+                    resolution=bv_res,
+                    codec=best_video.get("vcodec"),
+                    format_note=f"Best quality ({bv_res})",
+                    vcodec=best_video.get("vcodec"),
+                    acodec="merged",
+                ))
+
         return result
 
     async def cancel(self, job_id: str) -> None:

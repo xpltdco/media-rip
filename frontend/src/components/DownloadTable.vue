@@ -515,7 +515,7 @@ async function clearJob(jobId: string): Promise<void> {
   opacity: 0;
 }
 
-/* Mobile: hide speed, ETA, and progress columns */
+/* Mobile: hide speed, ETA, progress, and status columns */
 @media (max-width: 639px) {
   .hide-mobile {
     display: none;
@@ -527,7 +527,7 @@ async function clearJob(jobId: string): Promise<void> {
   }
 
   .col-status {
-    width: 75px;
+    display: none;
   }
 
   .col-progress {
@@ -552,11 +552,6 @@ async function clearJob(jobId: string): Promise<void> {
 
   .action-group {
     gap: 2px;
-  }
-
-  .status-badge {
-    font-size: 0.625rem;
-    padding: 1px 4px;
   }
 }
 

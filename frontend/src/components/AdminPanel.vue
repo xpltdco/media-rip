@@ -95,13 +95,15 @@ async function changePassword() {
     })
 
     if (res.ok) {
-      // Update stored credentials to use new password
-      store.password = newPassword.value
+      passwordChanged.value = true
       currentPassword.value = ''
       newPassword.value = ''
       confirmPassword.value = ''
-      passwordChanged.value = true
-      setTimeout(() => { passwordChanged.value = false }, 3000)
+      // Auto-logout after 1.5s so user sees the success message
+      setTimeout(() => {
+        store.logout()
+        router.push('/')
+      }, 1500)
     } else {
       const data = await res.json()
       passwordError.value = data.detail || 'Failed to change password'
@@ -335,6 +337,7 @@ function formatFilesize(bytes: number | null): string {
               placeholder="Confirm new password"
               autocomplete="new-password"
               class="settings-input"
+              @keydown.enter="changePassword"
             />
           </div>
           <div class="settings-actions" style="margin-top: var(--space-sm);">
