@@ -93,6 +93,20 @@ async def run_purge(
 
     await db.commit()
 
+    # Clean up orphaned sessions (sessions with no remaining jobs)
+    if purge_all:
+        orphan_cursor = await db.execute(
+            """
+            DELETE FROM sessions
+            WHERE id NOT IN (SELECT DISTINCT session_id FROM jobs)
+            """
+        )
+        sessions_deleted = orphan_cursor.rowcount
+        await db.commit()
+        logger.info("Purge: removed %d orphaned sessions", sessions_deleted)
+    else:
+        sessions_deleted = 0
+
     # Count skipped active jobs for observability
     active_cursor = await db.execute(
         "SELECT COUNT(*) FROM jobs WHERE status IN ('queued', 'extracting', 'downloading')"
@@ -105,6 +119,7 @@ async def run_purge(
         "files_deleted": files_deleted,
         "files_missing": files_missing,
         "active_skipped": active_skipped,
+        "sessions_deleted": sessions_deleted,
         "deleted_job_ids": deleted_job_ids,
     }
 

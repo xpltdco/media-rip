@@ -23,6 +23,7 @@ interface PurgeResult {
   files_deleted: number
   files_missing: number
   active_skipped: number
+  sessions_deleted?: number
 }
 
 export const useAdminStore = defineStore('admin', () => {
