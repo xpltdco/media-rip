@@ -72,20 +72,15 @@ class TestHealthEndpoint:
         assert len(parts) == 3, f"Expected semver, got {version}"
 
     @pytest.mark.anyio
-    async def test_health_queue_depth_reflects_active_jobs(self, client):
+    async def test_health_queue_depth_reflects_active_jobs(self, db):
         """queue_depth counts queued + downloading + extracting, not terminal."""
-        # Get the db from the test app via a back-door: make requests that
-        # create jobs, then check health.
-        # Create 2 queued jobs by posting downloads
-        resp1 = await client.post("/api/downloads", json={"url": "https://example.com/a"})
-        resp2 = await client.post("/api/downloads", json={"url": "https://example.com/b"})
-        assert resp1.status_code == 201
-        assert resp2.status_code == 201
+        # Insert active jobs directly into DB
+        sid = str(uuid.uuid4())
+        await create_job(db, _make_job(sid, "queued"))
+        await create_job(db, _make_job(sid, "downloading"))
 
-        health = await client.get("/api/health")
-        data = health.json()
-        # At least 2 active jobs (might be more if worker picked them up)
-        assert data["queue_depth"] >= 2
+        depth = await get_queue_depth(db)
+        assert depth >= 2
 
     @pytest.mark.anyio
     async def test_health_queue_depth_excludes_completed(self, db):

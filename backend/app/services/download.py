@@ -79,8 +79,53 @@ class DownloadService:
     async def enqueue(self, job_create: JobCreate, session_id: str) -> Job:
         """Create a job and submit it for background download.
 
-        Returns the ``Job`` immediately with status ``queued``.
+        For playlist URLs, creates one job per entry.
+        Returns the first ``Job`` immediately with status ``queued``.
         """
+        # Check if this is a playlist URL — if so, split into individual jobs
+        info = await self._loop.run_in_executor(
+            self._executor,
+            self._extract_url_info,
+            job_create.url,
+        )
+        entries: list[dict] = []
+        if info and (info.get("_type") == "playlist" or "entries" in info):
+            raw_entries = info.get("entries") or []
+            for e in raw_entries:
+                if isinstance(e, dict):
+                    entry_url = e.get("url") or e.get("webpage_url", "")
+                    if entry_url:
+                        entries.append({
+                            "url": entry_url,
+                            "title": e.get("title") or e.get("id", "Unknown"),
+                        })
+
+        if len(entries) > 1:
+            # Playlist: create one job per entry
+            logger.info(
+                "Playlist detected: %d entries for URL %s",
+                len(entries),
+                job_create.url,
+            )
+            first_job: Job | None = None
+            for entry in entries:
+                entry_create = JobCreate(
+                    url=entry["url"],
+                    format_id=job_create.format_id,
+                    quality=job_create.quality,
+                    output_template=job_create.output_template,
+                    media_type=job_create.media_type,
+                    output_format=job_create.output_format,
+                )
+                job = await self._enqueue_single(entry_create, session_id)
+                if first_job is None:
+                    first_job = job
+            return first_job  # type: ignore[return-value]
+        else:
+            return await self._enqueue_single(job_create, session_id)
+
+    async def _enqueue_single(self, job_create: JobCreate, session_id: str) -> Job:
+        """Create a single job and submit it for background download."""
         job_id = str(uuid.uuid4())
         template = resolve_template(
             job_create.url,
@@ -113,7 +158,7 @@ class DownloadService:
             "quiet": True,
             "no_warnings": True,
             "noprogress": True,
-            "noplaylist": False,
+            "noplaylist": True,  # Individual jobs — don't re-expand playlists
         }
         if job_create.format_id:
             opts["format"] = job_create.format_id
@@ -395,6 +440,16 @@ class DownloadService:
             logger.exception("URL info extraction failed for %s", url)
             return None
 
+    def _is_audio_only_source(self, url: str) -> bool:
+        """Check if a URL points to an audio-only source (no video streams)."""
+        # Known audio-only domains
+        audio_domains = [
+            "bandcamp.com",
+            "soundcloud.com",
+        ]
+        url_lower = url.lower()
+        return any(domain in url_lower for domain in audio_domains)
+
     async def get_url_info(self, url: str) -> dict:
         """Get URL metadata: title, type (single/playlist), entries."""
         info = await self._loop.run_in_executor(
@@ -403,34 +458,42 @@ class DownloadService:
             url,
         )
         if not info:
-            return {"type": "unknown", "title": None, "entries": []}
+            return {"type": "unknown", "title": None, "entries": [], "is_audio_only": False}
+
+        # Domain-based audio detection (more reliable than format sniffing)
+        domain_audio = self._is_audio_only_source(url)
 
         result_type = info.get("_type", "video")
         if result_type == "playlist" or "entries" in info:
             entries_raw = info.get("entries") or []
             entries = []
+            unavailable_count = 0
             for e in entries_raw:
                 if isinstance(e, dict):
+                    title = e.get("title") or e.get("id", "Unknown")
+                    # Detect private/unavailable entries
+                    if title in ("[Private video]", "[Deleted video]", "[Unavailable]"):
+                        unavailable_count += 1
+                        continue
                     entries.append({
-                        "title": e.get("title") or e.get("id", "Unknown"),
+                        "title": title,
                         "url": e.get("url") or e.get("webpage_url", ""),
                         "duration": e.get("duration"),
                     })
-            # Detect audio-only source (no video formats)
-            is_audio_only = False
-            if info.get("categories"):
-                is_audio_only = "Music" in info["categories"]
-            return {
+            result = {
                 "type": "playlist",
                 "title": info.get("title", "Playlist"),
                 "count": len(entries),
                 "entries": entries,
-                "is_audio_only": is_audio_only,
+                "is_audio_only": domain_audio,
             }
+            if unavailable_count > 0:
+                result["unavailable_count"] = unavailable_count
+            return result
         else:
             # Single video/track
             has_video = bool(info.get("vcodec") and info["vcodec"] != "none")
-            is_audio_only = not has_video
+            is_audio_only = domain_audio or not has_video
             return {
                 "type": "single",
                 "title": info.get("title"),

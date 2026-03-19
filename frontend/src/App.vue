@@ -2,11 +2,13 @@
 import { onMounted } from 'vue'
 import { useSSE } from '@/composables/useSSE'
 import { useConfigStore } from '@/stores/config'
+import { useDownloadsStore } from '@/stores/downloads'
 import { useThemeStore } from '@/stores/theme'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 
 const configStore = useConfigStore()
+const downloadsStore = useDownloadsStore()
 const themeStore = useThemeStore()
 const { connect } = useSSE()
 
@@ -14,6 +16,7 @@ onMounted(async () => {
   themeStore.init()
   await configStore.loadConfig()
   await themeStore.loadCustomThemes()
+  await downloadsStore.fetchJobs()
   connect()
 })
 </script>

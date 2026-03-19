@@ -53,6 +53,7 @@ export interface ProgressEvent {
   downloaded_bytes: number | null
   total_bytes: number | null
   filename: string | null
+  error_message?: string | null
 }
 
 export interface FormatInfo {
@@ -95,6 +96,7 @@ export interface UrlInfo {
   entries: UrlInfoEntry[]
   duration?: number | null
   is_audio_only: boolean
+  unavailable_count?: number
 }
 
 /**
