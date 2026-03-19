@@ -106,6 +106,37 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="media.rip()", lifespan=lifespan)
 app.add_middleware(SessionMiddleware)
+
+
+# --- Security headers middleware (R020: zero outbound telemetry) ---
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Add security headers enforcing no outbound resource loading."""
+
+    async def dispatch(self, request: StarletteRequest, call_next):  # type: ignore[override]
+        response: Response = await call_next(request)
+        # Content-Security-Policy: only allow resources from self
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "object-src 'none'; "
+            "frame-ancestors 'none'"
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        return response
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 app.include_router(admin_router, prefix="/api")
 app.include_router(cookies_router, prefix="/api")
 app.include_router(downloads_router, prefix="/api")
