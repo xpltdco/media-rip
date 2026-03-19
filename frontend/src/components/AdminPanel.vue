@@ -2,10 +2,12 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import { useConfigStore } from '@/stores/config'
 import { api } from '@/api/client'
 import AdminLogin from './AdminLogin.vue'
 
 const store = useAdminStore()
+const configStore = useConfigStore()
 const router = useRouter()
 const activeTab = ref<'sessions' | 'storage' | 'purge' | 'settings'>('sessions')
 
@@ -52,6 +54,8 @@ async function saveSettings() {
     default_audio_format: defaultAudioFormat.value,
   })
   if (ok) {
+    // Reload public config so main page picks up new defaults
+    await configStore.loadConfig()
     settingsSaved.value = true
     setTimeout(() => { settingsSaved.value = false }, 3000)
   }

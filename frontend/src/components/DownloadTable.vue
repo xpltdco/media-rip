@@ -441,11 +441,13 @@ async function clearJob(jobId: string): Promise<void> {
 }
 
 .action-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 30px;
   height: 30px;
+  min-width: 30px;
+  min-height: 30px;
   padding: 0;
   background: transparent;
   border: 1px solid var(--color-border);
@@ -454,6 +456,8 @@ async function clearJob(jobId: string): Promise<void> {
   cursor: pointer;
   transition: all 0.15s ease;
   text-decoration: none;
+  box-sizing: border-box;
+  line-height: 1;
 }
 
 .action-btn:hover {
