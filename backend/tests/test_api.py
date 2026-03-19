@@ -104,6 +104,7 @@ async def test_delete_download(client):
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_get_formats(client):
     """GET /api/formats?url= returns a non-empty format list (integration — needs network)."""
     resp = await client.get(
