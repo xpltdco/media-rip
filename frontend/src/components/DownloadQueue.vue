@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useDownloadsStore } from '@/stores/downloads'
-import DownloadItem from './DownloadItem.vue'
+import DownloadTable from './DownloadTable.vue'
 
 type Filter = 'all' | 'active' | 'completed' | 'failed'
 
@@ -57,13 +57,7 @@ function setFilter(f: Filter): void {
       </template>
     </div>
 
-    <TransitionGroup name="job-list" tag="div" class="queue-list">
-      <DownloadItem
-        v-for="job in filteredJobs"
-        :key="job.id"
-        :job="job"
-      />
-    </TransitionGroup>
+    <DownloadTable v-else :jobs="filteredJobs" />
   </div>
 </template>
 
@@ -111,32 +105,6 @@ function setFilter(f: Filter): void {
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--font-size-base);
-}
-
-.queue-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-/* Transition animations */
-.job-list-enter-active,
-.job-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.job-list-enter-from {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.job-list-leave-to {
-  opacity: 0;
-  transform: translateX(20px);
-}
-
-.job-list-move {
-  transition: transform 0.3s ease;
 }
 
 /* Mobile: full-width filters */

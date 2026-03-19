@@ -53,10 +53,10 @@ This milestone is complete only when all are true:
 
 ## Slices
 
-- [ ] **S01: Bug Fixes + Header/Footer Rework** `risk:high` `depends:[]`
+- [x] **S01: Bug Fixes + Header/Footer Rework** `risk:high` `depends:[]`
   > After this: Cancel button works, header has no tabs, footer shows version info, welcome message block is visible with default text, theme is sun/moon toggle
 
-- [ ] **S02: Download Flow + Queue Redesign** `risk:medium` `depends:[S01]`
+- [x] **S02: Download Flow + Queue Redesign** `risk:medium` `depends:[S01]`
   > After this: Single "Download" button with optional format picker, audio/video toggle, queue displays as styled table with sorting, completed items show download/copy/clear glyphs
 
 - [ ] **S03: Mobile + Integration Polish** `risk:low` `depends:[S02]`
