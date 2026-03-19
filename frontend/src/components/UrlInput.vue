@@ -12,14 +12,41 @@ const configStore = useConfigStore()
 const url = ref('')
 const formats = ref<FormatInfo[]>([])
 const selectedFormatId = ref<string | null>(null)
-const isExtracting = ref(false)
 const extractError = ref<string | null>(null)
 const showOptions = ref(false)
 
 // URL preview state
 const urlInfo = ref<UrlInfo | null>(null)
-const isLoadingInfo = ref(false)
 const audioLocked = ref(false)  // true when source is audio-only
+
+// Unified loading state for URL check + format extraction
+const isAnalyzing = ref(false)
+const analyzePhase = ref<string>('')
+const phaseMessages = [
+  'Peeking at the URL…',
+  'Interrogating the server…',
+  'Decoding the matrix…',
+  'Sniffing out formats…',
+  'Almost there…',
+]
+let phaseTimer: ReturnType<typeof setInterval> | null = null
+
+function startAnalyzePhase(): void {
+  let idx = 0
+  analyzePhase.value = phaseMessages[0]
+  phaseTimer = setInterval(() => {
+    idx = Math.min(idx + 1, phaseMessages.length - 1)
+    analyzePhase.value = phaseMessages[idx]
+  }, 1500)
+}
+
+function stopAnalyzePhase(): void {
+  if (phaseTimer) {
+    clearInterval(phaseTimer)
+    phaseTimer = null
+  }
+  analyzePhase.value = ''
+}
 
 type MediaType = 'video' | 'audio'
 const mediaType = ref<MediaType>(
@@ -92,7 +119,6 @@ async function extractFormats(): Promise<void> {
   const trimmed = url.value.trim()
   if (!trimmed) return
 
-  isExtracting.value = true
   extractError.value = null
   formats.value = []
   selectedFormatId.value = null
@@ -101,8 +127,6 @@ async function extractFormats(): Promise<void> {
     formats.value = await api.getFormats(trimmed)
   } catch (err: any) {
     extractError.value = err.message || 'Failed to extract formats'
-  } finally {
-    isExtracting.value = false
   }
 }
 
@@ -152,11 +176,17 @@ function onFormatSelect(formatId: string | null): void {
 }
 
 function handlePaste(): void {
-  // Auto-extract on paste (populate formats + URL info silently in background)
-  setTimeout(() => {
+  // Auto-extract on paste — unified loading state
+  setTimeout(async () => {
     if (url.value.trim()) {
-      extractFormats()
-      fetchUrlInfo()
+      isAnalyzing.value = true
+      startAnalyzePhase()
+      try {
+        await Promise.all([extractFormats(), fetchUrlInfo()])
+      } finally {
+        isAnalyzing.value = false
+        stopAnalyzePhase()
+      }
     }
   }, 50)
 }
@@ -164,7 +194,6 @@ function handlePaste(): void {
 async function fetchUrlInfo(): Promise<void> {
   const trimmed = url.value.trim()
   if (!trimmed) return
-  isLoadingInfo.value = true
   urlInfo.value = null
   audioLocked.value = false
   selectedEntries.value = new Set()
@@ -183,8 +212,6 @@ async function fetchUrlInfo(): Promise<void> {
     }
   } catch {
     // Non-critical — preview is optional
-  } finally {
-    isLoadingInfo.value = false
   }
 }
 
@@ -222,7 +249,7 @@ function formatDuration(seconds: number | null): string {
 function toggleOptions(): void {
   showOptions.value = !showOptions.value
   // Extract formats when opening options if we haven't yet
-  if (showOptions.value && !formatsReady.value && url.value.trim() && !isExtracting.value) {
+  if (showOptions.value && !formatsReady.value && url.value.trim() && !isAnalyzing.value) {
     extractFormats()
   }
 }
@@ -258,7 +285,7 @@ function formatTooltip(fmt: string): string {
       class="url-field"
       @paste="handlePaste"
       @keydown.enter="submitDownload"
-      :disabled="isExtracting || store.isSubmitting"
+      :disabled="isAnalyzing || store.isSubmitting"
     />
 
     <!-- Action row: gear, media toggle, download button -->
@@ -304,9 +331,10 @@ function formatTooltip(fmt: string): string {
       </button>
     </div>
 
-    <div v-if="isLoadingInfo" class="url-preview loading">
+    <!-- Unified analyzing state -->
+    <div v-if="isAnalyzing" class="url-preview loading">
       <span class="spinner"></span>
-      Checking URL…
+      {{ analyzePhase }}
     </div>
 
     <!-- URL preview: show what will be downloaded -->
@@ -350,11 +378,6 @@ function formatTooltip(fmt: string): string {
       </div>
     </div>
 
-    <div v-if="isExtracting" class="extract-loading">
-      <span class="spinner"></span>
-      Extracting available formats…
-    </div>
-
     <div v-if="extractError" class="extract-error">
       {{ extractError }}
     </div>
@@ -390,7 +413,7 @@ function formatTooltip(fmt: string): string {
           :media-type="mediaType"
           @select="onFormatSelect"
         />
-        <div v-else-if="!isExtracting" class="options-hint">
+        <div v-else-if="!isAnalyzing" class="options-hint">
           Paste a URL and formats will load automatically.
         </div>
       </div>
@@ -505,15 +528,6 @@ button:disabled {
 }
 
 /* Loading / errors */
-.extract-loading {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  padding: var(--space-sm);
-}
-
 .spinner {
   display: inline-block;
   width: 16px;
