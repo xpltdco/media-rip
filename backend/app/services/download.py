@@ -14,6 +14,7 @@ import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+from pathlib import Path
 
 import yt_dlp
 
@@ -206,7 +207,6 @@ class DownloadService:
                 # Normalize filename to be relative to the output directory
                 # so the frontend can construct download URLs correctly.
                 if event.filename:
-                    from pathlib import PurePosixPath, Path
                     abs_path = Path(event.filename).resolve()
                     out_dir = Path(self._config.downloads.output_dir).resolve()
                     try:
@@ -226,8 +226,8 @@ class DownloadService:
                 if pct_changed or status_changed:
                     self._last_db_percent[job_id] = event.percent
                     logger.debug(
-                        "Job %s DB write: percent=%.1f status=%s",
-                        job_id, event.percent, event.status,
+                        "Job %s DB write: percent=%.1f status=%s filename=%s",
+                        job_id, event.percent, event.status, event.filename,
                     )
                     future = asyncio.run_coroutine_threadsafe(
                         update_job_progress(
@@ -243,7 +243,7 @@ class DownloadService:
                     # Block worker thread until DB write completes
                     future.result(timeout=10)
             except Exception:
-                logger.exception("Job %s progress hook error", job_id)
+                logger.exception("Job %s progress hook error (status=%s)", job_id, d.get("status"))
 
         opts["progress_hooks"] = [progress_hook]
 
@@ -261,7 +261,33 @@ class DownloadService:
 
             # Fresh YoutubeDL instance — never shared
             with yt_dlp.YoutubeDL(opts) as ydl:
+                # Extract info first to determine the output filename.
+                # This is needed because yt-dlp may skip progress hooks
+                # entirely when the file already exists.
+                info = ydl.extract_info(url, download=False)
+                if info:
+                    raw_fn = ydl.prepare_filename(info)
+                    abs_path = Path(raw_fn).resolve()
+                    out_dir = Path(self._config.downloads.output_dir).resolve()
+                    try:
+                        relative_fn = str(abs_path.relative_to(out_dir))
+                    except ValueError:
+                        relative_fn = abs_path.name
+                else:
+                    relative_fn = None
+
                 ydl.download([url])
+
+            # Persist filename to DB (progress hooks may not have fired
+            # if the file already existed)
+            if relative_fn:
+                asyncio.run_coroutine_threadsafe(
+                    update_job_progress(
+                        self._db, job_id, 100.0,
+                        None, None, relative_fn,
+                    ),
+                    self._loop,
+                ).result(timeout=10)
 
             # Mark as completed and notify SSE
             asyncio.run_coroutine_threadsafe(
@@ -271,7 +297,7 @@ class DownloadService:
             self._broker.publish(session_id, {
                 "event": "job_update",
                 "data": {"job_id": job_id, "status": "completed", "percent": 100,
-                         "speed": None, "eta": None, "filename": None},
+                         "speed": None, "eta": None, "filename": relative_fn},
             })
             logger.info("Job %s completed", job_id)
 
