@@ -43,6 +43,41 @@ async def list_sessions(
     return {"sessions": sessions, "total": len(sessions)}
 
 
+@router.get("/sessions/{session_id}/jobs")
+async def session_jobs(
+    session_id: str,
+    request: Request,
+    _admin: str = Depends(require_admin),
+) -> dict:
+    """List jobs for a specific session with file details."""
+    db = request.app.state.db
+    cursor = await db.execute(
+        """
+        SELECT id, url, status, filename, filesize,
+               created_at, started_at, completed_at
+        FROM jobs
+        WHERE session_id = ?
+        ORDER BY created_at DESC
+        """,
+        (session_id,),
+    )
+    rows = await cursor.fetchall()
+    jobs = [
+        {
+            "id": row["id"],
+            "url": row["url"],
+            "status": row["status"],
+            "filename": row["filename"],
+            "filesize": row["filesize"],
+            "created_at": row["created_at"],
+            "started_at": row["started_at"],
+            "completed_at": row["completed_at"],
+        }
+        for row in rows
+    ]
+    return {"jobs": jobs}
+
+
 @router.get("/storage")
 async def storage_info(
     request: Request,

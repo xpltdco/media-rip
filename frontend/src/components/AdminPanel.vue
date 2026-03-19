@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { api } from '@/api/client'
 import AdminLogin from './AdminLogin.vue'
 
 const store = useAdminStore()
+const router = useRouter()
 const activeTab = ref<'sessions' | 'storage' | 'purge' | 'settings'>('sessions')
+
+// Session expansion state
+const expandedSessions = ref<Set<string>>(new Set())
+const sessionJobs = ref<Record<string, any[]>>({})
+const loadingJobs = ref<Set<string>>(new Set())
 
 // Settings state
 const welcomeMessage = ref('')
@@ -41,6 +48,38 @@ async function saveSettings() {
     setTimeout(() => { settingsSaved.value = false }, 3000)
   }
 }
+
+async function toggleSession(sessionId: string) {
+  if (expandedSessions.value.has(sessionId)) {
+    expandedSessions.value.delete(sessionId)
+    return
+  }
+  expandedSessions.value.add(sessionId)
+  if (!sessionJobs.value[sessionId]) {
+    loadingJobs.value.add(sessionId)
+    try {
+      const res = await fetch(`/api/admin/sessions/${sessionId}/jobs`, {
+        headers: { Authorization: `Basic ${btoa(`${store.username}:${store.password}`)}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        sessionJobs.value[sessionId] = data.jobs
+      }
+    } catch { /* ignore */ }
+    loadingJobs.value.delete(sessionId)
+  }
+}
+
+function jobFilename(job: any): string {
+  if (!job.filename) return '—'
+  const parts = job.filename.replace(/\\/g, '/').split('/')
+  return parts[parts.length - 1]
+}
+
+function formatFilesize(bytes: number | null): string {
+  if (!bytes) return '—'
+  return formatBytes(bytes)
+}
 </script>
 
 <template>
@@ -50,7 +89,7 @@ async function saveSettings() {
     <template v-else>
       <div class="admin-header">
         <h2>Admin Panel</h2>
-        <button class="btn-logout" @click="store.logout()">Logout</button>
+        <button class="btn-logout" @click="store.logout(); router.push('/')">Logout</button>
       </div>
 
       <div class="admin-tabs">
@@ -69,17 +108,42 @@ async function saveSettings() {
         <table class="admin-table" v-if="store.sessions.length">
           <thead>
             <tr>
+              <th></th>
               <th>Session ID</th>
               <th>Last Seen</th>
               <th>Jobs</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="s in store.sessions" :key="s.id">
-              <td class="mono">{{ s.id.slice(0, 8) }}…</td>
-              <td>{{ new Date(s.last_seen).toLocaleString() }}</td>
-              <td>{{ s.job_count }}</td>
-            </tr>
+            <template v-for="s in store.sessions" :key="s.id">
+              <tr
+                class="session-row"
+                :class="{ expanded: expandedSessions.has(s.id), clickable: s.job_count > 0 }"
+                @click="s.job_count > 0 && toggleSession(s.id)"
+              >
+                <td class="col-expand">
+                  <span v-if="s.job_count > 0" class="expand-icon">{{ expandedSessions.has(s.id) ? '▼' : '▶' }}</span>
+                </td>
+                <td class="mono">{{ s.id.slice(0, 8) }}…</td>
+                <td>{{ new Date(s.last_seen).toLocaleString() }}</td>
+                <td>{{ s.job_count }}</td>
+              </tr>
+              <tr v-if="expandedSessions.has(s.id)" class="jobs-detail-row">
+                <td colspan="4">
+                  <div v-if="loadingJobs.has(s.id)" class="jobs-loading">Loading…</div>
+                  <div v-else-if="sessionJobs[s.id]?.length" class="jobs-detail">
+                    <div v-for="job in sessionJobs[s.id]" :key="job.id" class="job-item">
+                      <span class="job-filename">{{ jobFilename(job) }}</span>
+                      <span class="job-size">{{ formatFilesize(job.filesize) }}</span>
+                      <span class="job-status badge-sm" :class="'badge-' + job.status">{{ job.status }}</span>
+                      <span class="job-time">{{ new Date(job.created_at).toLocaleString() }}</span>
+                      <a v-if="job.url" class="job-url" :href="job.url" target="_blank" rel="noopener" :title="job.url">↗</a>
+                    </div>
+                  </div>
+                  <div v-else class="jobs-empty">No jobs found.</div>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
         <p v-else class="empty">No sessions found.</p>
@@ -347,5 +411,103 @@ h3 {
   color: var(--color-success);
   font-weight: 500;
   font-size: var(--font-size-sm);
+}
+
+/* Expandable session rows */
+.session-row.clickable {
+  cursor: pointer;
+}
+
+.session-row.clickable:hover {
+  background: var(--color-surface-hover);
+}
+
+.session-row.expanded {
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+
+.col-expand {
+  width: 24px;
+  text-align: center;
+}
+
+.expand-icon {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.jobs-detail-row td {
+  padding: 0 var(--space-md) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.jobs-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm) 0;
+}
+
+.job-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.job-filename {
+  flex: 1;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.job-size {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.badge-sm {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-completed { background: color-mix(in srgb, var(--color-success) 15%, transparent); color: var(--color-success); }
+.badge-failed { background: color-mix(in srgb, var(--color-error) 15%, transparent); color: var(--color-error); }
+.badge-downloading { background: color-mix(in srgb, var(--color-accent) 15%, transparent); color: var(--color-accent); }
+.badge-queued { background: color-mix(in srgb, var(--color-text-muted) 15%, transparent); color: var(--color-text-muted); }
+
+.job-time {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  font-size: var(--font-size-sm);
+}
+
+.job-url {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.job-url:hover {
+  text-decoration: underline;
+}
+
+.jobs-loading, .jobs-empty {
+  padding: var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  font-style: italic;
 }
 </style>

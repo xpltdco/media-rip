@@ -68,3 +68,16 @@ async def cancel_download(
         )
 
     return {"status": "cancelled"}
+
+
+@router.post("/url-info")
+async def url_info(
+    request: Request,
+    body: dict,
+) -> dict:
+    """Extract metadata about a URL (title, playlist detection, audio-only detection)."""
+    url = body.get("url", "").strip()
+    if not url:
+        return JSONResponse(status_code=400, content={"detail": "URL required"})
+    download_service = request.app.state.download_service
+    return await download_service.get_url_info(url)
