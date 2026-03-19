@@ -110,6 +110,23 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  async function updateSettings(data: Record<string, string>): Promise<boolean> {
+    isLoading.value = true
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          ..._authHeaders(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+      return res.ok
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     username,
     isAuthenticated,
@@ -123,5 +140,6 @@ export const useAdminStore = defineStore('admin', () => {
     loadSessions,
     loadStorage,
     triggerPurge,
+    updateSettings,
   }
 })

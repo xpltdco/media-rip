@@ -122,3 +122,35 @@ async def manual_purge(
     db = request.app.state.db
     result = await run_purge(db, config)
     return result
+
+
+@router.put("/settings")
+async def update_settings(
+    request: Request,
+    _admin: str = Depends(require_admin),
+) -> dict:
+    """Update runtime settings (in-memory only — resets on restart).
+
+    Accepts a JSON body with optional fields:
+      - welcome_message: str
+    """
+    body = await request.json()
+
+    if not hasattr(request.app.state, "settings_overrides"):
+        request.app.state.settings_overrides = {}
+
+    updated = []
+    if "welcome_message" in body:
+        msg = body["welcome_message"]
+        if not isinstance(msg, str):
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(
+                status_code=422,
+                content={"detail": "welcome_message must be a string"},
+            )
+        request.app.state.settings_overrides["welcome_message"] = msg
+        updated.append("welcome_message")
+        logger.info("Admin updated welcome_message to: %s", msg[:80])
+
+    return {"updated": updated, "status": "ok"}
