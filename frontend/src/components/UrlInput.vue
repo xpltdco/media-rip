@@ -229,6 +229,9 @@ function formatTooltip(fmt: string): string {
         <div v-if="urlInfo.entries.length > 10" class="preview-more">
           …and {{ urlInfo.entries.length - 10 }} more
         </div>
+        <div v-if="urlInfo.unavailable_count" class="preview-warning">
+          ⚠ {{ urlInfo.unavailable_count }} private/unavailable item{{ urlInfo.unavailable_count > 1 ? 's' : '' }} skipped
+        </div>
       </div>
     </div>
 
@@ -586,6 +589,15 @@ button:disabled {
   padding: var(--space-xs) 0;
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+.preview-warning {
+  padding: var(--space-xs) var(--space-sm);
+  margin-top: var(--space-xs);
+  color: var(--color-warning);
+  font-size: var(--font-size-sm);
+  background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .toggle-pill.disabled {

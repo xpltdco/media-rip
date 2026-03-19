@@ -58,8 +58,8 @@ class ProgressEvent(BaseModel):
     percent: float
     speed: str | None = None
     eta: str | None = None
-    downloaded_bytes: int | None = None
-    total_bytes: int | None = None
+    downloaded_bytes: int | float | None = None
+    total_bytes: int | float | None = None
     filename: str | None = None
 
     @classmethod

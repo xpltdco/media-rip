@@ -96,6 +96,7 @@ export const useDownloadsStore = defineStore('downloads', () => {
       if (event.speed !== null) existing.speed = event.speed
       if (event.eta !== null) existing.eta = event.eta
       if (event.filename !== null) existing.filename = event.filename
+      if (event.error_message) existing.error_message = event.error_message
       // Trigger reactivity by re-setting the map entry
       jobs.value.set(event.job_id, { ...existing })
     } else {
