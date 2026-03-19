@@ -155,6 +155,9 @@ async def manual_purge(
 
     config = request.app.state.config
     db = request.app.state.db
+    # Attach runtime overrides so purge service can read them
+    overrides = getattr(request.app.state, "settings_overrides", {})
+    config._runtime_overrides = overrides
     result = await run_purge(db, config)
     return result
 
@@ -205,6 +208,46 @@ async def update_settings(
         if fmt in valid_audio_formats:
             request.app.state.settings_overrides["default_audio_format"] = fmt
             updated.append("default_audio_format")
+            logger.info("Admin updated default_audio_format to: %s", fmt)
+
+    if "privacy_mode" in body:
+        val = body["privacy_mode"]
+        if isinstance(val, bool):
+            request.app.state.settings_overrides["privacy_mode"] = val
+            # When enabling privacy mode, also enable the purge scheduler
+            config = request.app.state.config
+            if val and not config.purge.enabled:
+                config.purge.enabled = True
+                # Start the scheduler if APScheduler is available
+                try:
+                    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+                    from apscheduler.triggers.cron import CronTrigger
+                    from app.services.purge import run_purge
+
+                    if not hasattr(request.app.state, "scheduler"):
+                        scheduler = AsyncIOScheduler()
+                        scheduler.add_job(
+                            run_purge,
+                            CronTrigger(minute="*/30"),  # every 30 min for privacy
+                            args=[request.app.state.db, config],
+                            id="purge_job",
+                            name="Privacy purge",
+                            replace_existing=True,
+                        )
+                        scheduler.start()
+                        request.app.state.scheduler = scheduler
+                        logger.info("Privacy mode: started purge scheduler (every 30 min)")
+                except Exception as e:
+                    logger.warning("Could not start purge scheduler: %s", e)
+            updated.append("privacy_mode")
+            logger.info("Admin updated privacy_mode to: %s", val)
+
+    if "privacy_retention_hours" in body:
+        val = body["privacy_retention_hours"]
+        if isinstance(val, (int, float)) and 1 <= val <= 8760:  # 1 hour to 1 year
+            request.app.state.settings_overrides["privacy_retention_hours"] = int(val)
+            updated.append("privacy_retention_hours")
+            logger.info("Admin updated privacy_retention_hours to: %d", int(val))
             logger.info("Admin updated default_audio_format to: %s", fmt)
 
     return {"updated": updated, "status": "ok"}

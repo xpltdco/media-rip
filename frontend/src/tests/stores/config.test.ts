@@ -33,6 +33,8 @@ describe('config store', () => {
       max_concurrent_downloads: 3,
       default_video_format: 'auto',
       default_audio_format: 'auto',
+      privacy_mode: false,
+      privacy_retention_hours: 24,
     }
     vi.mocked(api.getPublicConfig).mockResolvedValue(mockConfig)
 

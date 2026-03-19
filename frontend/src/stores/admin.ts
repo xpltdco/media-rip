@@ -110,7 +110,7 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
-  async function updateSettings(data: Record<string, string>): Promise<boolean> {
+  async function updateSettings(data: Record<string, string | boolean | number>): Promise<boolean> {
     isLoading.value = true
     try {
       const res = await fetch('/api/admin/settings', {

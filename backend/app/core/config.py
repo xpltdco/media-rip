@@ -67,6 +67,8 @@ class PurgeConfig(BaseModel):
     enabled: bool = False
     max_age_hours: int = 168  # 7 days
     cron: str = "0 3 * * *"  # 3 AM daily
+    privacy_mode: bool = False
+    privacy_retention_hours: int = 24  # default when privacy mode enabled
 
 
 class UIConfig(BaseModel):
