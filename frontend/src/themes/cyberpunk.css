@@ -1,0 +1,81 @@
+/*
+ * media.rip() — Cyberpunk Theme
+ *
+ * The default and flagship theme.
+ *
+ * Visual identity:
+ *   - Electric blue (#00a8ff) + molten orange (#ff6b2b) accent pair
+ *   - JetBrains Mono for display/code text
+ *   - CRT scanline overlay (subtle, pointer-events: none)
+ *   - Grid background pattern
+ *   - Glow effects on focus/active states
+ *   - Deep dark backgrounds (#0a0e14 base)
+ *
+ * ╔════════════════════════════════════════════╗
+ * ║  CUSTOM THEME AUTHORS: Copy this file as  ║
+ * ║  a starting point. Override only the       ║
+ * ║  variables you want to change. All tokens  ║
+ * ║  are documented in base.css.               ║
+ * ╚════════════════════════════════════════════╝
+ */
+
+:root[data-theme="cyberpunk"] {
+  /* ── Background & Surface ──
+   * Deep navy/charcoal base with blue-tinted surfaces.
+   * Creates depth through subtle value shifts.
+   */
+  --color-bg: #0a0e14;
+  --color-surface: #131820;
+  --color-surface-hover: #1a2030;
+  --color-border: #1e2a3a;
+
+  /* ── Text ──
+   * High-contrast light text on dark backgrounds.
+   * Muted variant uses a cool blue-gray.
+   */
+  --color-text: #e0e6ed;
+  --color-text-muted: #8090a0;
+
+  /* ── Accent ──
+   * Electric blue primary, molten orange secondary.
+   * The blue/orange complementary pair is the signature look.
+   */
+  --color-accent: #00a8ff;
+  --color-accent-hover: #33bbff;
+  --color-accent-secondary: #ff6b2b;
+
+  /* ── Status Colors ── */
+  --color-success: #2ecc71;
+  --color-warning: #f39c12;
+  --color-error: #e74c3c;
+
+  /* ── Typography ──
+   * Display text uses monospace for that terminal aesthetic.
+   */
+  --font-display: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+
+  /* ── Effects ──
+   * Scanlines: subtle horizontal lines mimicking CRT monitors.
+   * Grid: faint blue grid background for that "HUD" feel.
+   * Glow: blue shadow on focused elements.
+   */
+  --effect-scanlines: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  --effect-grid: linear-gradient(rgba(0, 168, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 168, 255, 0.03) 1px, transparent 1px);
+  --effect-grid-size: 32px 32px;
+  --effect-glow: 0 0 20px rgba(0, 168, 255, 0.15);
+
+  /* ── Shadows ──
+   * Deep shadows with slight blue tint.
+   */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(0, 168, 255, 0.15);
+}

@@ -1,0 +1,31 @@
+/* media.rip() - Light Theme */
+
+:root[data-theme="light"] {
+  --color-bg: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-hover: #eeeef0;
+  --color-border: #d1d5db;
+
+  --color-text: #1a1a2e;
+  --color-text-muted: #6b7280;
+
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-secondary: #dc2626;
+
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+
+  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --effect-scanlines: none;
+  --effect-grid: none;
+  --effect-grid-size: 0px 0px;
+  --effect-glow: none;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-glow: none;
+}

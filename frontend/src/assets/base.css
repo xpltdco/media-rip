@@ -1,0 +1,273 @@
+/*
+ * media.rip() — CSS Variable Contract (base.css)
+ *
+ * ══════════════════════════════════════════════════════
+ *   THIS FILE IS THE PUBLIC API FOR CUSTOM THEMES.
+ *   Token names MUST NOT change after v1.0 ships.
+ * ══════════════════════════════════════════════════════
+ *
+ * Every CSS custom property defined in :root below is part of the
+ * theme contract. Custom themes override these values to restyle
+ * the entire application. To create a custom theme:
+ *
+ *   1. Create a folder in /themes/ with your theme name
+ *   2. Add metadata.json: { "name": "My Theme", "author": "You" }
+ *   3. Add theme.css that overrides these variables inside [data-theme="my-theme"]
+ *   4. Restart the container — your theme appears in the picker
+ *
+ * See the built-in themes (cyberpunk.css, dark.css, light.css)
+ * for fully commented examples.
+ *
+ * Token naming convention:
+ *   --color-*     Colors (backgrounds, text, accents, status)
+ *   --font-*      Typography (families, sizes)
+ *   --space-*     Spacing (padding, margins, gaps)
+ *   --radius-*    Border radius
+ *   --shadow-*    Box shadows
+ *   --effect-*    Visual effects (overlays, glows, animations)
+ *   --layout-*    Layout dimensions (header, sidebar, content)
+ *   --touch-*     Touch target minimums
+ *   --transition-*  Transition timing
+ */
+
+/* ═══════════════════════════════════════════
+ *  DEFAULT VALUES (Cyberpunk theme baseline)
+ *  These are the fallback values when no
+ *  data-theme attribute is set.
+ * ═══════════════════════════════════════════ */
+:root {
+  /* ── Background & Surface ──
+   * bg:           Page/app background
+   * surface:      Card/panel backgrounds (slightly lighter than bg)
+   * surface-hover: Hover state for surface elements
+   * border:       Dividers, outlines, separators
+   */
+  --color-bg: #0a0e14;
+  --color-surface: #131820;
+  --color-surface-hover: #1a2030;
+  --color-border: #1e2a3a;
+
+  /* ── Text ──
+   * text:       Primary body text
+   * text-muted: Secondary/helper text, labels
+   */
+  --color-text: #e0e6ed;
+  --color-text-muted: #8090a0;
+
+  /* ── Accent ──
+   * accent:        Primary interactive color (links, active states, CTA)
+   * accent-hover:  Hover variant of accent
+   * accent-secondary: Secondary accent (used sparingly for contrast)
+   */
+  --color-accent: #00a8ff;
+  --color-accent-hover: #33bbff;
+  --color-accent-secondary: #ff6b2b;
+
+  /* ── Status ──
+   * success: Completed, valid, healthy
+   * warning: Caution, in-progress alerts
+   * error:   Failed, invalid, critical
+   */
+  --color-success: #2ecc71;
+  --color-warning: #f39c12;
+  --color-error: #e74c3c;
+
+  /* ── Typography ──
+   * font-ui:   Body text, labels, buttons
+   * font-mono: Code, filenames, technical values
+   * font-display: Headings, logo (defaults to font-mono for cyberpunk)
+   */
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+  --font-display: var(--font-mono);
+
+  /* ── Font Sizes ── */
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+
+  /* ── Spacing ──
+   * Used for padding, margins, and gaps throughout.
+   * Scale: xs(4) < sm(8) < md(16) < lg(24) < xl(32) < 2xl(48)
+   */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* ── Border Radius ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(0, 168, 255, 0.15);
+
+  /* ── Effects ──
+   * Themes can enable/disable overlays, glows, and animation.
+   * Set to 'none' to disable.
+   *
+   * effect-scanlines:   Repeating-gradient overlay for CRT effect
+   * effect-grid:        Background grid pattern
+   * effect-glow:        Box-shadow glow on focused/active elements
+   * effect-noise:       Noise texture overlay (url or none)
+   */
+  --effect-scanlines: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  --effect-grid: linear-gradient(rgba(0, 168, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 168, 255, 0.03) 1px, transparent 1px);
+  --effect-grid-size: 32px 32px;
+  --effect-glow: 0 0 20px rgba(0, 168, 255, 0.15);
+  --effect-noise: none;
+
+  /* ── Layout ── */
+  --layout-header-height: 56px;
+  --layout-sidebar-width: 280px;
+  --layout-mobile-nav-height: 56px;
+  --layout-content-max-width: 960px;
+
+  /* ── Deprecated aliases ──
+   * Kept for backward compat with components written during S03.
+   * Custom themes should use the canonical names above.
+   */
+  --header-height: var(--layout-header-height);
+  --sidebar-width: var(--layout-sidebar-width);
+  --mobile-nav-height: var(--layout-mobile-nav-height);
+  --content-max-width: var(--layout-content-max-width);
+
+  /* ── Touch / Accessibility ── */
+  --touch-min: 44px;
+
+  /* ── Transitions ── */
+  --transition-fast: 0.1s ease;
+  --transition-normal: 0.15s ease;
+  --transition-slow: 0.3s ease;
+}
+
+
+/* ═══════════════════════════════════════════
+ *  RESET & BASE STYLES
+ *  These apply regardless of theme.
+ * ═══════════════════════════════════════════ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/*
+ * Global effects layer — applied via ::after on body.
+ * Themes that set --effect-scanlines and --effect-grid
+ * get automatic overlays. Set to 'none' to disable.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background: var(--effect-scanlines);
+  opacity: 0.4;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: var(--effect-grid);
+  background-size: var(--effect-grid-size);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  min-height: var(--touch-min);
+  transition: background-color var(--transition-normal),
+    color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  min-height: var(--touch-min);
+  outline: none;
+  transition: border-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--effect-glow);
+}
+
+/* ── Utility Classes ── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

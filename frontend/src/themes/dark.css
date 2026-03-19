@@ -1,0 +1,62 @@
+/*
+ * media.rip() — Dark Theme
+ *
+ * A clean, professional dark theme without visual effects.
+ * Good for users who want a straightforward dark UI
+ * without cyberpunk's scanlines and glows.
+ *
+ * Changes from cyberpunk:
+ *   - Warmer gray tones instead of blue-tinted darks
+ *   - Purple accent instead of electric blue
+ *   - No scanlines, grid, or glow effects
+ *   - System font stack (no monospace display)
+ */
+
+:root[data-theme="dark"] {
+  /* ── Background & Surface ──
+   * Neutral dark grays without blue tint.
+   */
+  --color-bg: #121212;
+  --color-surface: #1e1e1e;
+  --color-surface-hover: #2a2a2a;
+  --color-border: #333333;
+
+  /* ── Text ──
+   * Slightly warmer white than cyberpunk.
+   */
+  --color-text: #e8e8e8;
+  --color-text-muted: #999999;
+
+  /* ── Accent ──
+   * Soft purple primary. No secondary accent.
+   */
+  --color-accent: #a78bfa;
+  --color-accent-hover: #c4b5fd;
+  --color-accent-secondary: #f472b6;
+
+  /* ── Status Colors ── */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+
+  /* ── Typography ──
+   * System fonts for everything — clean and fast.
+   */
+  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* ── Effects ──
+   * All effects disabled for a clean look.
+   */
+  --effect-scanlines: none;
+  --effect-grid: none;
+  --effect-grid-size: 0px 0px;
+  --effect-glow: none;
+
+  /* ── Shadows ──
+   * Softer shadows than cyberpunk.
+   */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.4);
+  --shadow-glow: none;
+}

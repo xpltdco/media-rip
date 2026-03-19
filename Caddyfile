@@ -1,0 +1,7 @@
+# media.rip() — Caddyfile for auto-TLS reverse proxy
+#
+# Replace {$DOMAIN} with your actual domain, or set DOMAIN in your .env file.
+
+{$DOMAIN:localhost} {
+    reverse_proxy mediarip:8000
+}
