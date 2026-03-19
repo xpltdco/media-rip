@@ -20,10 +20,16 @@ async def public_config(request: Request) -> dict:
     is fragile when new sensitive fields are added later.
     """
     config = request.app.state.config
+
+    # Runtime overrides (set via admin settings endpoint) take precedence
+    overrides = getattr(request.app.state, "settings_overrides", {})
+
     return {
         "session_mode": config.session.mode,
         "default_theme": config.ui.default_theme,
-        "welcome_message": config.ui.welcome_message,
+        "welcome_message": overrides.get(
+            "welcome_message", config.ui.welcome_message
+        ),
         "purge_enabled": config.purge.enabled,
         "max_concurrent_downloads": config.downloads.max_concurrent,
     }

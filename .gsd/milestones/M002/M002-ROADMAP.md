@@ -59,7 +59,7 @@ This milestone is complete only when all are true:
 - [x] **S02: Download Flow + Queue Redesign** `risk:medium` `depends:[S01]`
   > After this: Single "Download" button with optional format picker, audio/video toggle, queue displays as styled table with sorting, completed items show download/copy/clear glyphs
 
-- [ ] **S03: Mobile + Integration Polish** `risk:low` `depends:[S02]`
+- [x] **S03: Mobile + Integration Polish** `risk:low` `depends:[S02]`
   > After this: Mobile layout works with new table design, admin welcome message editor functional, all flows verified end-to-end
 
 ## Boundary Map

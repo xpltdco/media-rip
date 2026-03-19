@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { api } from '@/api/client'
 import AdminLogin from './AdminLogin.vue'
 
 const store = useAdminStore()
-const activeTab = ref<'sessions' | 'storage' | 'purge'>('sessions')
+const activeTab = ref<'sessions' | 'storage' | 'purge' | 'settings'>('sessions')
+
+// Settings state
+const welcomeMessage = ref('')
+const settingsSaved = ref(false)
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -15,8 +20,26 @@ function formatBytes(bytes: number): string {
 
 async function switchTab(tab: typeof activeTab.value) {
   activeTab.value = tab
+  settingsSaved.value = false
   if (tab === 'sessions') await store.loadSessions()
   if (tab === 'storage') await store.loadStorage()
+  if (tab === 'settings') {
+    try {
+      const config = await api.getPublicConfig()
+      welcomeMessage.value = config.welcome_message
+    } catch {
+      // Keep current value
+    }
+  }
+}
+
+async function saveSettings() {
+  settingsSaved.value = false
+  const ok = await store.updateSettings({ welcome_message: welcomeMessage.value })
+  if (ok) {
+    settingsSaved.value = true
+    setTimeout(() => { settingsSaved.value = false }, 3000)
+  }
 }
 </script>
 
@@ -32,7 +55,7 @@ async function switchTab(tab: typeof activeTab.value) {
 
       <div class="admin-tabs">
         <button
-          v-for="tab in (['sessions', 'storage', 'purge'] as const)"
+          v-for="tab in (['sessions', 'storage', 'purge', 'settings'] as const)"
           :key="tab"
           :class="{ active: activeTab === tab }"
           @click="switchTab(tab)"
@@ -102,6 +125,34 @@ async function switchTab(tab: typeof activeTab.value) {
           <p>Files already gone: {{ store.purgeResult.files_missing }}</p>
           <p>Active jobs skipped: {{ store.purgeResult.active_skipped }}</p>
         </div>
+      </div>
+
+      <!-- Settings tab -->
+      <div v-if="activeTab === 'settings'" class="tab-content">
+        <div class="settings-field">
+          <label for="welcome-msg">Welcome Message</label>
+          <p class="field-hint">Displayed above the URL input on the main page. Leave empty to hide.</p>
+          <textarea
+            id="welcome-msg"
+            v-model="welcomeMessage"
+            rows="3"
+            class="settings-textarea"
+            placeholder="Enter a welcome message…"
+          ></textarea>
+        </div>
+        <div class="settings-actions">
+          <button
+            @click="saveSettings"
+            :disabled="store.isLoading"
+            class="btn-save"
+          >
+            {{ store.isLoading ? 'Saving…' : 'Save Settings' }}
+          </button>
+          <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
+        </div>
+        <p class="field-hint" style="margin-top: var(--space-md);">
+          Changes are applied immediately but reset on server restart.
+        </p>
       </div>
     </template>
   </div>
@@ -238,5 +289,63 @@ h3 {
 .empty {
   color: var(--color-text-muted);
   text-align: center;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.settings-field label {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.field-hint {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.settings-textarea {
+  width: 100%;
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  resize: vertical;
+}
+
+.settings-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.btn-save {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
+}
+
+.btn-save:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.save-confirm {
+  color: var(--color-success);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
 }
 </style>
