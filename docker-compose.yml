@@ -8,7 +8,7 @@
 
 services:
   mediarip:
-    image: ghcr.io/jlightner/media-rip:latest
+    image: ghcr.io/xpltdco/media-rip:latest
     # build: .  # Uncomment to build from source
     ports:
       - "8080:8000"
@@ -20,7 +20,7 @@ services:
       - MEDIARIP__SESSION__MODE=isolated
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
       interval: 30s
       timeout: 5s
       retries: 3

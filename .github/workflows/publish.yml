@@ -7,14 +7,14 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: xpltdco/media-rip
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   publish:
     name: Build & push image
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
