@@ -9,12 +9,10 @@ Covers:
 
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime, timezone
 
 import pytest
-import pytest_asyncio
 
 from app.core.database import (
     create_job,
@@ -22,7 +20,7 @@ from app.core.database import (
     get_jobs_by_mode,
     get_queue_depth,
 )
-from app.models.job import Job, JobStatus
+from app.models.job import Job
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +127,6 @@ class TestPublicConfig:
     @pytest.mark.anyio
     async def test_public_config_reflects_actual_config(self, tmp_path):
         """Config values in the response match what AppConfig was built with."""
-        import asyncio
         from datetime import datetime, timezone
 
         from fastapi import FastAPI
@@ -137,7 +134,6 @@ class TestPublicConfig:
 
         from app.core.config import AppConfig
         from app.core.database import close_db, init_db
-        from app.core.sse_broker import SSEBroker
         from app.middleware.session import SessionMiddleware
         from app.routers.system import router as system_router
 

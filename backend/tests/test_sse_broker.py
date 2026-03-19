@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import threading
 
-import pytest
 
 from app.core.sse_broker import SSEBroker
 

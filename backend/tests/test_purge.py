@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone, timedelta
-from pathlib import Path
 
 import pytest
-import pytest_asyncio
 
 from app.core.config import AppConfig
-from app.core.database import create_job, init_db, close_db
+from app.core.database import create_job
 from app.models.job import Job
 from app.services.purge import run_purge
 

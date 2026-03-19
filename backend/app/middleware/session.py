@@ -43,7 +43,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         # --- Resolve or create session ---
         cookie_value = request.cookies.get("mrip_session")
-        new_session = False
 
         if cookie_value and _is_valid_uuid4(cookie_value):
             session_id = cookie_value
@@ -54,13 +53,11 @@ class SessionMiddleware(BaseHTTPMiddleware):
             else:
                 # Valid UUID but not in DB (expired/purged) — recreate
                 await create_session(db, session_id)
-                new_session = True
                 logger.info("Session recreated (cookie valid, DB miss): %s", session_id)
         else:
             # Missing or invalid cookie — brand new session
             session_id = str(uuid.uuid4())
             await create_session(db, session_id)
-            new_session = True
             logger.info("New session created: %s", session_id)
 
         request.state.session_id = session_id
