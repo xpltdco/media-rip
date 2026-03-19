@@ -71,6 +71,18 @@ class DownloadService:
         # Per-job throttle state for DB writes (only used inside worker threads)
         self._last_db_percent: dict[str, float] = {}
 
+    def update_max_concurrent(self, max_workers: int) -> None:
+        """Update the thread pool size for concurrent downloads.
+
+        Creates a new executor — existing in-flight downloads continue on the old one.
+        """
+        self._executor = ThreadPoolExecutor(
+            max_workers=max_workers,
+            thread_name_prefix="ytdl",
+        )
+        # Don't shutdown old executor — let in-flight downloads finish
+        logger.info("Updated max concurrent downloads to %d", max_workers)
+
     # ------------------------------------------------------------------
     # Public async interface
     # ------------------------------------------------------------------
