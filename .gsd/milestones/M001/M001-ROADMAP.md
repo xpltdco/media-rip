@@ -68,7 +68,7 @@ This milestone is complete only when all are true:
 - [x] **S03: Frontend Core** `risk:medium` `depends:[S02]`
   > After this: Full Vue 3 SPA in the browser: paste URL, pick format from live extraction, watch progress bar fill, see completed files in queue. Playlists show as collapsible parent/child rows. Mobile layout (375px) uses bottom tabs, card list, ≥44px targets. Desktop uses sidebar + table. Proven by loading the SPA and completing a download flow.
 
-- [ ] **S04: Admin, Auth + Supporting Features** `risk:medium` `depends:[S02]`
+- [x] **S04: Admin, Auth + Supporting Features** `risk:medium` `depends:[S02]`
   > After this: Admin panel requires username/password login (bcrypt). Session list, storage view, manual purge, live config editor, unsupported URL log download all functional. Cookie auth upload works per-session. Session export/import produces valid archive. File link sharing serves completed downloads. Security headers present on admin routes. Startup warns if TLS not detected. Proven via auth tests + admin flow verification.
 
 - [ ] **S05: Theme System** `risk:low` `depends:[S03]`
