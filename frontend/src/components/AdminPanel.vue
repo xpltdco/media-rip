@@ -339,6 +339,12 @@ function formatFilesize(bytes: number | null): string {
               class="settings-input"
               @keydown.enter="changePassword"
             />
+            <span
+              v-if="confirmPassword && newPassword && confirmPassword !== newPassword"
+              class="password-mismatch"
+            >
+              Passwords don't match
+            </span>
           </div>
           <div class="settings-actions" style="margin-top: var(--space-sm);">
             <button
@@ -616,6 +622,11 @@ h3 {
   color: var(--color-error);
   font-size: var(--font-size-sm);
   font-weight: 500;
+}
+
+.password-mismatch {
+  color: var(--color-warning);
+  font-size: var(--font-size-sm);
 }
 
 /* Expandable session rows */

@@ -393,7 +393,8 @@ function formatTooltip(fmt: string): string {
       </div>
     </div>
 
-    <div v-if="analyzeError" class="extract-error">
+    <!-- Error feedback — shown in preview area style -->
+    <div v-if="analyzeError && !isAnalyzing" class="url-preview error-preview">
       {{ analyzeError }}
     </div>
 
@@ -405,9 +406,9 @@ function formatTooltip(fmt: string): string {
       {{ store.submitError }}
     </div>
 
-    <!-- Collapsible options panel -->
+    <!-- Collapsible options panel (hidden when URL is invalid) -->
     <Transition name="options-slide">
-      <div v-if="showOptions" class="options-panel">
+      <div v-if="showOptions && !analyzeError" class="options-panel">
         <!-- Output format selector -->
         <div class="format-selector">
           <label class="format-label">Output format</label>
@@ -656,6 +657,11 @@ button:disabled {
   align-items: center;
   gap: var(--space-sm);
   color: var(--color-text-muted);
+}
+
+.url-preview.error-preview {
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
 }
 
 .preview-header {
