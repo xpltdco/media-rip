@@ -450,6 +450,23 @@ class DownloadService:
         url_lower = url.lower()
         return any(domain in url_lower for domain in audio_domains)
 
+    @staticmethod
+    def _guess_ext_from_url(url: str, is_audio: bool) -> str:
+        """Guess the likely output extension based on the source URL."""
+        url_lower = url.lower()
+        if "bandcamp.com" in url_lower:
+            return "mp3"
+        if "soundcloud.com" in url_lower:
+            return "opus"
+        if "youtube.com" in url_lower or "youtu.be" in url_lower:
+            return "opus" if is_audio else "webm"
+        if "vimeo.com" in url_lower:
+            return "mp4"
+        if "twitter.com" in url_lower or "x.com" in url_lower:
+            return "mp4"
+        # Fallback
+        return "opus" if is_audio else "webm"
+
     async def get_url_info(self, url: str) -> dict:
         """Get URL metadata: title, type (single/playlist), entries."""
         info = await self._loop.run_in_executor(
@@ -486,6 +503,7 @@ class DownloadService:
                 "count": len(entries),
                 "entries": entries,
                 "is_audio_only": domain_audio,
+                "default_ext": self._guess_ext_from_url(url, domain_audio),
             }
             if unavailable_count > 0:
                 result["unavailable_count"] = unavailable_count
@@ -494,12 +512,17 @@ class DownloadService:
             # Single video/track
             has_video = bool(info.get("vcodec") and info["vcodec"] != "none")
             is_audio_only = domain_audio or not has_video
+            # Detect likely file extension
+            ext = info.get("ext")
+            if not ext:
+                ext = self._guess_ext_from_url(url, is_audio_only)
             return {
                 "type": "single",
                 "title": info.get("title"),
                 "duration": info.get("duration"),
                 "is_audio_only": is_audio_only,
                 "entries": [],
+                "default_ext": ext,
             }
 
 

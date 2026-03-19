@@ -97,6 +97,7 @@ export interface UrlInfo {
   duration?: number | null
   is_audio_only: boolean
   unavailable_count?: number
+  default_ext?: string
 }
 
 /**

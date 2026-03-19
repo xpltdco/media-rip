@@ -8,11 +8,12 @@ DELETE /downloads/{job_id} — cancel a job
 from __future__ import annotations
 
 import logging
+import os
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
-from app.core.database import get_job, get_jobs_by_session
+from app.core.database import delete_job, get_job, get_jobs_by_session
 from app.dependencies import get_session_id
 from app.models.job import Job, JobCreate
 
@@ -50,24 +51,37 @@ async def cancel_download(
     job_id: str,
     request: Request,
 ) -> dict:
-    """Cancel (mark as failed) a download job."""
+    """Delete a download job and remove its file."""
     logger.debug("DELETE /downloads/%s", job_id)
     db = request.app.state.db
     download_service = request.app.state.download_service
 
-    # Fetch the job first to get its session_id for the SSE broadcast
+    # Fetch the job first to get its session_id and filename
     job = await get_job(db, job_id)
+    if job is None:
+        return {"status": "not_found"}
 
-    await download_service.cancel(job_id)
+    # Delete the downloaded file if it exists
+    if job.filename:
+        output_dir = request.app.state.config.downloads.output_dir
+        filepath = os.path.join(output_dir, job.filename)
+        try:
+            if os.path.isfile(filepath):
+                os.remove(filepath)
+                logger.info("Deleted file: %s", filepath)
+        except OSError:
+            logger.warning("Failed to delete file: %s", filepath)
+
+    # Remove job from database
+    await delete_job(db, job_id)
 
     # Notify any SSE clients watching this session
-    if job is not None:
-        request.app.state.broker.publish(
-            job.session_id,
-            {"event": "job_removed", "data": {"job_id": job_id}},
-        )
+    request.app.state.broker.publish(
+        job.session_id,
+        {"event": "job_removed", "data": {"job_id": job_id}},
+    )
 
-    return {"status": "cancelled"}
+    return {"status": "deleted"}
 
 
 @router.post("/url-info")
