@@ -64,6 +64,13 @@ async def lifespan(app: FastAPI):
     db = await init_db(config.server.db_path)
     logger.info("Database initialised at %s", config.server.db_path)
 
+    # --- Load persisted settings from DB ---
+    from app.services.settings import apply_persisted_to_config, load_persisted_settings
+
+    persisted = await load_persisted_settings(db)
+    if persisted:
+        apply_persisted_to_config(config, persisted)
+
     # --- Event loop + SSE broker ---
     loop = asyncio.get_event_loop()
     broker = SSEBroker(loop)
@@ -100,6 +107,10 @@ async def lifespan(app: FastAPI):
     app.state.broker = broker
     app.state.download_service = download_service
     app.state.start_time = datetime.now(timezone.utc)
+
+    # Store format overrides from persisted settings
+    app.state._default_video_format = persisted.get("default_video_format", "auto")
+    app.state._default_audio_format = persisted.get("default_audio_format", "auto")
 
     yield
 

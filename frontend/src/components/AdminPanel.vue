@@ -26,6 +26,14 @@ const privacyRetentionHours = ref(24)
 const purgeConfirming = ref(false)
 let purgeConfirmTimer: ReturnType<typeof setTimeout> | null = null
 
+// New persisted settings
+const maxConcurrent = ref(3)
+const sessionMode = ref('isolated')
+const sessionTimeoutHours = ref(72)
+const adminUsername = ref('admin')
+const purgeEnabled = ref(false)
+const purgeMaxAgeHours = ref(168)
+
 // Change password state
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -55,14 +63,25 @@ async function switchTab(tab: typeof activeTab.value) {
   if (tab === 'errors') await store.loadErrorLog()
   if (tab === 'settings') {
     try {
-      const config = await api.getPublicConfig()
-      welcomeMessage.value = config.welcome_message
-      defaultVideoFormat.value = config.default_video_format || 'auto'
-      defaultAudioFormat.value = config.default_audio_format || 'auto'
-      privacyMode.value = config.privacy_mode ?? false
-      privacyRetentionHours.value = config.privacy_retention_hours ?? 24
+      const res = await fetch('/api/admin/settings', {
+        headers: { Authorization: `Basic ${btoa(`${store.username}:${store.password}`)}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        welcomeMessage.value = data.welcome_message ?? ''
+        defaultVideoFormat.value = data.default_video_format || 'auto'
+        defaultAudioFormat.value = data.default_audio_format || 'auto'
+        privacyMode.value = data.privacy_mode ?? false
+        privacyRetentionHours.value = data.privacy_retention_hours ?? 24
+        maxConcurrent.value = data.max_concurrent ?? 3
+        sessionMode.value = data.session_mode ?? 'isolated'
+        sessionTimeoutHours.value = data.session_timeout_hours ?? 72
+        adminUsername.value = data.admin_username ?? 'admin'
+        purgeEnabled.value = data.purge_enabled ?? false
+        purgeMaxAgeHours.value = data.purge_max_age_hours ?? 168
+      }
     } catch {
-      // Keep current value
+      // Keep current values
     }
   }
 }
@@ -75,6 +94,12 @@ async function saveAllSettings() {
     default_audio_format: defaultAudioFormat.value,
     privacy_mode: privacyMode.value,
     privacy_retention_hours: privacyRetentionHours.value,
+    max_concurrent: maxConcurrent.value,
+    session_mode: sessionMode.value,
+    session_timeout_hours: sessionTimeoutHours.value,
+    admin_username: adminUsername.value,
+    purge_enabled: purgeEnabled.value,
+    purge_max_age_hours: purgeMaxAgeHours.value,
   })
   if (ok) {
     await configStore.loadConfig()
@@ -362,6 +387,83 @@ function formatFilesize(bytes: number | null): string {
             </div>
           </div>
 
+          <!-- Server settings -->
+          <div class="settings-field">
+            <label>Max Concurrent Downloads</label>
+            <p class="field-hint">How many downloads can run in parallel (1–10).</p>
+            <input
+              type="number"
+              v-model.number="maxConcurrent"
+              min="1"
+              max="10"
+              class="settings-input"
+              style="width: 80px;"
+            />
+          </div>
+
+          <div class="settings-field">
+            <label>Session Mode</label>
+            <p class="field-hint">Controls download queue visibility between browser sessions.</p>
+            <select v-model="sessionMode" class="settings-select">
+              <option value="isolated">Isolated — each browser has its own queue</option>
+              <option value="shared">Shared — all users see all downloads</option>
+              <option value="open">Open — no session tracking</option>
+            </select>
+          </div>
+
+          <div class="settings-field">
+            <label>Session Timeout</label>
+            <p class="field-hint">Hours before an inactive session cookie expires (1–8760).</p>
+            <div class="retention-input-row">
+              <input
+                type="number"
+                v-model.number="sessionTimeoutHours"
+                min="1"
+                max="8760"
+                class="settings-input retention-input"
+              />
+              <span class="retention-unit">hours</span>
+            </div>
+          </div>
+
+          <div class="settings-field">
+            <label>Admin Username</label>
+            <p class="field-hint">Username for admin panel login.</p>
+            <input
+              type="text"
+              v-model="adminUsername"
+              class="settings-input"
+              style="max-width: 200px;"
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="settings-field">
+            <label class="toggle-label">
+              <span>Auto-Purge</span>
+              <label class="toggle-switch">
+                <input type="checkbox" v-model="purgeEnabled" />
+                <span class="toggle-slider"></span>
+              </label>
+            </label>
+            <p class="field-hint">
+              Automatically delete completed/failed downloads on a schedule.
+            </p>
+            <div v-if="purgeEnabled" class="retention-setting">
+              <label class="retention-label">Delete downloads older than</label>
+              <div class="retention-input-row">
+                <input
+                  type="number"
+                  v-model.number="purgeMaxAgeHours"
+                  min="1"
+                  max="87600"
+                  class="settings-input retention-input"
+                />
+                <span class="retention-unit">hours</span>
+              </div>
+            </div>
+          </div>
+
           <div class="settings-actions settings-save-row">
             <button @click="saveAllSettings" :disabled="store.isLoading" class="btn-save">
               {{ store.isLoading ? 'Saving…' : 'Save Settings' }}
@@ -369,7 +471,7 @@ function formatFilesize(bytes: number | null): string {
             <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
           </div>
           <p class="field-hint">
-            Settings are applied immediately but reset on server restart.
+            Settings are saved to the database and persist across restarts.
           </p>
         </div>
 
@@ -403,7 +505,7 @@ function formatFilesize(bytes: number | null): string {
 
         <div class="settings-field">
           <label>Change Password</label>
-          <p class="field-hint">Takes effect immediately but resets on server restart.</p>
+          <p class="field-hint">Takes effect immediately. Set via MEDIARIP__ADMIN__PASSWORD_HASH env var for initial deployment.</p>
           <div class="password-fields">
             <input
               v-model="currentPassword"

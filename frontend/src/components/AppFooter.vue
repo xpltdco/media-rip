@@ -24,7 +24,7 @@ onMounted(async () => {
     <span>yt-dlp {{ ytDlpVersion }}</span>
     <span class="sep">|</span>
     <a
-      href="https://github.com/jlightner/media-rip"
+      href="https://github.com/xpltdco/media-rip"
       target="_blank"
       rel="noopener noreferrer"
     >GitHub</a>

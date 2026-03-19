@@ -1,10 +1,14 @@
-"""Admin API endpoints — protected by require_admin dependency."""
+"""Admin API endpoints — protected by require_admin dependency.
+
+Settings are persisted to SQLite and survive container restarts.
+"""
 
 from __future__ import annotations
 
 import logging
 
 from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse
 
 from app.dependencies import require_admin
 
@@ -137,7 +141,6 @@ async def list_unsupported_urls(
         for row in rows
     ]
 
-    # Total count
     count_cursor = await db.execute("SELECT COUNT(*) FROM unsupported_urls")
     count_row = await count_cursor.fetchone()
     total = count_row[0] if count_row else 0
@@ -181,9 +184,6 @@ async def manual_purge(
 
     config = request.app.state.config
     db = request.app.state.db
-    # Attach runtime overrides so purge service can read them
-    overrides = getattr(request.app.state, "settings_overrides", {})
-    config._runtime_overrides = overrides
     result = await run_purge(db, config, purge_all=True)
 
     # Broadcast job_removed events to all SSE clients
@@ -191,9 +191,31 @@ async def manual_purge(
     for job_id in result.get("deleted_job_ids", []):
         broker.publish_all({"event": "job_removed", "data": {"job_id": job_id}})
 
-    # Don't send internal field to client
     result.pop("deleted_job_ids", None)
     return result
+
+
+@router.get("/settings")
+async def get_settings(
+    request: Request,
+    _admin: str = Depends(require_admin),
+) -> dict:
+    """Return all admin-configurable settings with current values."""
+    config = request.app.state.config
+
+    return {
+        "welcome_message": config.ui.welcome_message,
+        "default_video_format": getattr(request.app.state, "_default_video_format", "auto"),
+        "default_audio_format": getattr(request.app.state, "_default_audio_format", "auto"),
+        "privacy_mode": config.purge.privacy_mode,
+        "privacy_retention_hours": config.purge.privacy_retention_hours,
+        "max_concurrent": config.downloads.max_concurrent,
+        "session_mode": config.session.mode,
+        "session_timeout_hours": config.session.timeout_hours,
+        "admin_username": config.admin.username,
+        "purge_enabled": config.purge.enabled,
+        "purge_max_age_hours": config.purge.max_age_hours,
+    }
 
 
 @router.put("/settings")
@@ -201,31 +223,39 @@ async def update_settings(
     request: Request,
     _admin: str = Depends(require_admin),
 ) -> dict:
-    """Update runtime settings (in-memory only — resets on restart).
+    """Update and persist admin settings to SQLite.
 
-    Accepts a JSON body with optional fields:
+    Accepts a JSON body with any combination of:
       - welcome_message: str
       - default_video_format: str (auto, mp4, webm)
       - default_audio_format: str (auto, mp3, m4a, flac, wav, opus)
+      - privacy_mode: bool
+      - privacy_retention_hours: int (1-8760)
+      - max_concurrent: int (1-10)
+      - session_mode: str (isolated, shared, open)
+      - session_timeout_hours: int (1-8760)
+      - admin_username: str
+      - purge_enabled: bool
+      - purge_max_age_hours: int (1-87600)
     """
+    from app.services.settings import save_settings
+
     body = await request.json()
+    config = request.app.state.config
+    db = request.app.state.db
 
-    if not hasattr(request.app.state, "settings_overrides"):
-        request.app.state.settings_overrides = {}
-
+    to_persist = {}
     updated = []
+
+    # --- Validate and collect ---
+
     if "welcome_message" in body:
         msg = body["welcome_message"]
         if not isinstance(msg, str):
-            from fastapi.responses import JSONResponse
-
-            return JSONResponse(
-                status_code=422,
-                content={"detail": "welcome_message must be a string"},
-            )
-        request.app.state.settings_overrides["welcome_message"] = msg
+            return JSONResponse(status_code=422, content={"detail": "welcome_message must be a string"})
+        config.ui.welcome_message = msg
+        to_persist["welcome_message"] = msg
         updated.append("welcome_message")
-        logger.info("Admin updated welcome_message to: %s", msg[:80])
 
     valid_video_formats = {"auto", "mp4", "webm"}
     valid_audio_formats = {"auto", "mp3", "m4a", "flac", "wav", "opus"}
@@ -233,56 +263,85 @@ async def update_settings(
     if "default_video_format" in body:
         fmt = body["default_video_format"]
         if fmt in valid_video_formats:
-            request.app.state.settings_overrides["default_video_format"] = fmt
+            request.app.state._default_video_format = fmt
+            to_persist["default_video_format"] = fmt
             updated.append("default_video_format")
-            logger.info("Admin updated default_video_format to: %s", fmt)
 
     if "default_audio_format" in body:
         fmt = body["default_audio_format"]
         if fmt in valid_audio_formats:
-            request.app.state.settings_overrides["default_audio_format"] = fmt
+            request.app.state._default_audio_format = fmt
+            to_persist["default_audio_format"] = fmt
             updated.append("default_audio_format")
-            logger.info("Admin updated default_audio_format to: %s", fmt)
 
     if "privacy_mode" in body:
         val = body["privacy_mode"]
         if isinstance(val, bool):
-            request.app.state.settings_overrides["privacy_mode"] = val
-            # When enabling privacy mode, also enable the purge scheduler
-            config = request.app.state.config
-            if val and not config.purge.enabled:
-                config.purge.enabled = True
-                # Start the scheduler if APScheduler is available
-                try:
-                    from apscheduler.schedulers.asyncio import AsyncIOScheduler
-                    from apscheduler.triggers.cron import CronTrigger
-                    from app.services.purge import run_purge
-
-                    if not hasattr(request.app.state, "scheduler"):
-                        scheduler = AsyncIOScheduler()
-                        scheduler.add_job(
-                            run_purge,
-                            CronTrigger(minute="*/30"),  # every 30 min for privacy
-                            args=[request.app.state.db, config],
-                            id="purge_job",
-                            name="Privacy purge",
-                            replace_existing=True,
-                        )
-                        scheduler.start()
-                        request.app.state.scheduler = scheduler
-                        logger.info("Privacy mode: started purge scheduler (every 30 min)")
-                except Exception as e:
-                    logger.warning("Could not start purge scheduler: %s", e)
+            config.purge.privacy_mode = val
+            to_persist["privacy_mode"] = val
             updated.append("privacy_mode")
-            logger.info("Admin updated privacy_mode to: %s", val)
+            # Start purge scheduler if enabling privacy mode
+            if val and not getattr(request.app.state, "scheduler", None):
+                _start_purge_scheduler(request.app.state, config, db)
 
     if "privacy_retention_hours" in body:
         val = body["privacy_retention_hours"]
-        if isinstance(val, (int, float)) and 1 <= val <= 8760:  # 1 hour to 1 year
-            request.app.state.settings_overrides["privacy_retention_hours"] = int(val)
+        if isinstance(val, (int, float)) and 1 <= val <= 8760:
+            config.purge.privacy_retention_hours = int(val)
+            to_persist["privacy_retention_hours"] = int(val)
             updated.append("privacy_retention_hours")
-            logger.info("Admin updated privacy_retention_hours to: %d", int(val))
-            logger.info("Admin updated default_audio_format to: %s", fmt)
+
+    if "max_concurrent" in body:
+        val = body["max_concurrent"]
+        if isinstance(val, int) and 1 <= val <= 10:
+            config.downloads.max_concurrent = val
+            to_persist["max_concurrent"] = val
+            updated.append("max_concurrent")
+            # Update the download service's executor pool size
+            download_service = request.app.state.download_service
+            download_service.update_max_concurrent(val)
+
+    if "session_mode" in body:
+        val = body["session_mode"]
+        if val in ("isolated", "shared", "open"):
+            config.session.mode = val
+            to_persist["session_mode"] = val
+            updated.append("session_mode")
+
+    if "session_timeout_hours" in body:
+        val = body["session_timeout_hours"]
+        if isinstance(val, int) and 1 <= val <= 8760:
+            config.session.timeout_hours = val
+            to_persist["session_timeout_hours"] = val
+            updated.append("session_timeout_hours")
+
+    if "admin_username" in body:
+        val = body["admin_username"]
+        if isinstance(val, str) and len(val) >= 1:
+            config.admin.username = val
+            to_persist["admin_username"] = val
+            updated.append("admin_username")
+
+    if "purge_enabled" in body:
+        val = body["purge_enabled"]
+        if isinstance(val, bool):
+            config.purge.enabled = val
+            to_persist["purge_enabled"] = val
+            updated.append("purge_enabled")
+            if val and not getattr(request.app.state, "scheduler", None):
+                _start_purge_scheduler(request.app.state, config, db)
+
+    if "purge_max_age_hours" in body:
+        val = body["purge_max_age_hours"]
+        if isinstance(val, int) and 1 <= val <= 87600:
+            config.purge.max_age_hours = val
+            to_persist["purge_max_age_hours"] = val
+            updated.append("purge_max_age_hours")
+
+    # --- Persist to DB ---
+    if to_persist:
+        await save_settings(db, to_persist)
+        logger.info("Admin persisted settings: %s", ", ".join(updated))
 
     return {"updated": updated, "status": "ok"}
 
@@ -292,12 +351,7 @@ async def change_password(
     request: Request,
     _admin: str = Depends(require_admin),
 ) -> dict:
-    """Change admin password (in-memory only — resets on restart).
-
-    Accepts JSON body:
-      - current_password: str (required, must match current password)
-      - new_password: str (required, min 4 chars)
-    """
+    """Change admin password. Persisted in-memory only (set via env var for persistence)."""
     import bcrypt
 
     body = await request.json()
@@ -305,20 +359,17 @@ async def change_password(
     new_pw = body.get("new_password", "")
 
     if not current or not new_pw:
-        from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=422,
             content={"detail": "current_password and new_password are required"},
         )
 
     if len(new_pw) < 4:
-        from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=422,
             content={"detail": "New password must be at least 4 characters"},
         )
 
-    # Verify current password
     config = request.app.state.config
     try:
         valid = bcrypt.checkpw(
@@ -329,15 +380,36 @@ async def change_password(
         valid = False
 
     if not valid:
-        from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=403,
             content={"detail": "Current password is incorrect"},
         )
 
-    # Hash and store new password
     new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     config.admin.password_hash = new_hash
     logger.info("Admin password changed by user '%s'", _admin)
 
     return {"status": "ok", "message": "Password changed successfully"}
+
+
+def _start_purge_scheduler(state, config, db) -> None:
+    """Start the APScheduler purge job if not already running."""
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        from app.services.purge import run_purge
+
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(
+            run_purge,
+            CronTrigger(minute="*/30"),
+            args=[db, config],
+            id="purge_job",
+            name="Scheduled purge",
+            replace_existing=True,
+        )
+        scheduler.start()
+        state.scheduler = scheduler
+        logger.info("Purge scheduler started")
+    except Exception as e:
+        logger.warning("Could not start purge scheduler: %s", e)
