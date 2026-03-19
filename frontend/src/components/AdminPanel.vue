@@ -9,7 +9,7 @@ import AdminLogin from './AdminLogin.vue'
 const store = useAdminStore()
 const configStore = useConfigStore()
 const router = useRouter()
-const activeTab = ref<'sessions' | 'storage' | 'settings'>('sessions')
+const activeTab = ref<'sessions' | 'storage' | 'errors' | 'settings'>('sessions')
 
 // Session expansion state
 const expandedSessions = ref<Set<string>>(new Set())
@@ -52,6 +52,7 @@ async function switchTab(tab: typeof activeTab.value) {
   settingsSaved.value = false
   if (tab === 'sessions') await store.loadSessions()
   if (tab === 'storage') await store.loadStorage()
+  if (tab === 'errors') await store.loadErrorLog()
   if (tab === 'settings') {
     try {
       const config = await api.getPublicConfig()
@@ -178,7 +179,7 @@ function formatFilesize(bytes: number | null): string {
 
       <div class="admin-tabs">
         <button
-          v-for="tab in (['sessions', 'storage', 'settings'] as const)"
+          v-for="tab in (['sessions', 'storage', 'errors', 'settings'] as const)"
           :key="tab"
           :class="{ active: activeTab === tab }"
           @click="switchTab(tab)"
@@ -255,6 +256,38 @@ function formatFilesize(bytes: number | null): string {
           </div>
         </div>
         <p v-else class="empty">Loading…</p>
+      </div>
+
+      <!-- Errors tab -->
+      <div v-if="activeTab === 'errors'" class="tab-content">
+        <div class="error-log-header">
+          <p class="field-hint" style="margin: 0;">
+            Failed downloads are logged here with enough detail to diagnose domain-specific issues.
+          </p>
+          <button
+            v-if="store.errorLog.length"
+            @click="store.clearErrorLog()"
+            :disabled="store.isLoading"
+            class="btn-clear-log"
+          >
+            Clear Log
+          </button>
+        </div>
+        <div v-if="store.errorLog.length" class="error-log">
+          <div v-for="entry in store.errorLog" :key="entry.id" class="error-entry">
+            <div class="error-entry-header">
+              <span class="error-domain">{{ entry.domain }}</span>
+              <span class="error-time">{{ new Date(entry.created_at).toLocaleString() }}</span>
+            </div>
+            <div class="error-url mono">{{ entry.url }}</div>
+            <div class="error-message">{{ entry.error }}</div>
+            <div v-if="entry.format_id || entry.media_type" class="error-meta">
+              <span v-if="entry.media_type">{{ entry.media_type }}</span>
+              <span v-if="entry.format_id">format: {{ entry.format_id }}</span>
+            </div>
+          </div>
+        </div>
+        <p v-else class="empty">No errors logged.</p>
       </div>
 
       <!-- Settings tab -->
@@ -898,5 +931,83 @@ h3 {
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
   font-style: italic;
+}
+
+/* Error log */
+.error-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.btn-clear-log {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.btn-clear-log:hover {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.error-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.error-entry {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.error-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.error-domain {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.error-time {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.error-url {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  word-break: break-all;
+  margin-bottom: var(--space-xs);
+}
+
+.error-message {
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-meta {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xs);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 </style>

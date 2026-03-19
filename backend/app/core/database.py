@@ -60,6 +60,17 @@ CREATE TABLE IF NOT EXISTS unsupported_urls (
     error      TEXT,
     created_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS error_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    url        TEXT NOT NULL,
+    domain     TEXT,
+    error      TEXT NOT NULL,
+    format_id  TEXT,
+    media_type TEXT,
+    session_id TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 _INDEXES = """
@@ -334,3 +345,53 @@ async def update_session_last_seen(db: aiosqlite.Connection, session_id: str) ->
         (now, session_id),
     )
     await db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Error log helpers
+# ---------------------------------------------------------------------------
+
+
+async def log_download_error(
+    db: aiosqlite.Connection,
+    url: str,
+    error: str,
+    session_id: str | None = None,
+    format_id: str | None = None,
+    media_type: str | None = None,
+) -> None:
+    """Record a failed download in the error log."""
+    from urllib.parse import urlparse
+
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        domain = urlparse(url).netloc or url[:80]
+    except Exception:
+        domain = url[:80]
+
+    await db.execute(
+        """INSERT INTO error_log (url, domain, error, format_id, media_type, session_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (url, domain, error[:2000], format_id, media_type, session_id, now),
+    )
+    await db.commit()
+
+
+async def get_error_log(
+    db: aiosqlite.Connection,
+    limit: int = 100,
+) -> list[dict]:
+    """Return recent error log entries, newest first."""
+    cursor = await db.execute(
+        "SELECT * FROM error_log ORDER BY created_at DESC LIMIT ?",
+        (limit,),
+    )
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+async def clear_error_log(db: aiosqlite.Connection) -> int:
+    """Delete all error log entries. Returns count deleted."""
+    cursor = await db.execute("DELETE FROM error_log")
+    await db.commit()
+    return cursor.rowcount

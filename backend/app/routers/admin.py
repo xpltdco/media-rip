@@ -145,6 +145,32 @@ async def list_unsupported_urls(
     return {"items": items, "total": total, "limit": limit, "offset": offset}
 
 
+@router.get("/errors")
+async def get_errors(
+    request: Request,
+    _admin: str = Depends(require_admin),
+) -> dict:
+    """Return recent download error log entries."""
+    from app.core.database import get_error_log
+
+    db = request.app.state.db
+    entries = await get_error_log(db, limit=200)
+    return {"errors": entries}
+
+
+@router.delete("/errors")
+async def clear_errors(
+    request: Request,
+    _admin: str = Depends(require_admin),
+) -> dict:
+    """Clear all error log entries."""
+    from app.core.database import clear_error_log
+
+    db = request.app.state.db
+    count = await clear_error_log(db)
+    return {"cleared": count}
+
+
 @router.post("/purge")
 async def manual_purge(
     request: Request,

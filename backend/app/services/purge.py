@@ -102,10 +102,17 @@ async def run_purge(
             """
         )
         sessions_deleted = orphan_cursor.rowcount
+
+        # Clear error log on manual purge
+        error_cursor = await db.execute("DELETE FROM error_log")
+        errors_cleared = error_cursor.rowcount
+
         await db.commit()
-        logger.info("Purge: removed %d orphaned sessions", sessions_deleted)
+        logger.info("Purge: removed %d orphaned sessions, %d error log entries",
+                     sessions_deleted, errors_cleared)
     else:
         sessions_deleted = 0
+        errors_cleared = 0
 
     # Count skipped active jobs for observability
     active_cursor = await db.execute(
