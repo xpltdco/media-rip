@@ -74,7 +74,7 @@ This milestone is complete only when all are true:
 - [x] **S05: Theme System** `risk:low` `depends:[S03]`
   > After this: Cyberpunk theme renders with scanlines/grid overlay, JetBrains Mono, #00a8ff/#ff6b2b. Dark and light themes are clean alternatives. CSS variable contract documented in base.css. Drop a custom theme folder into /themes volume → restart → appears in picker → applies correctly. Built-in themes heavily commented as documentation. Proven by theme switching and custom theme load.
 
-- [ ] **S06: Docker + CI/CD** `risk:low` `depends:[S01,S02,S03,S04,S05]`
+- [x] **S06: Docker + CI/CD** `risk:low` `depends:[S01,S02,S03,S04,S05]`
   > After this: `docker compose up` → app works at :8080 with zero config. `docker-compose.example.yml` includes Caddy/Traefik sidecar for TLS. Tag v0.1.0 → GitHub Actions builds multi-arch image → pushes to GHCR + Docker Hub → creates GitHub Release. PR triggers lint + test + Docker smoke. Zero outbound telemetry verified. Proven by running the published image and completing a full download flow.
 
 ## Boundary Map
