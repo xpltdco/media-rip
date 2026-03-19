@@ -84,16 +84,40 @@ function toggleOptions(): void {
 
 <template>
   <div class="url-input">
-    <div class="input-row">
-      <input
-        v-model="url"
-        type="url"
-        placeholder="Paste a URL to download…"
-        class="url-field"
-        @paste="handlePaste"
-        @keydown.enter="submitDownload"
-        :disabled="isExtracting || store.isSubmitting"
-      />
+    <!-- URL field -->
+    <input
+      v-model="url"
+      type="url"
+      placeholder="Paste a URL to download…"
+      class="url-field"
+      @paste="handlePaste"
+      @keydown.enter="submitDownload"
+      :disabled="isExtracting || store.isSubmitting"
+    />
+
+    <!-- Action row: media toggle, download button, gear -->
+    <div class="action-row">
+      <div class="media-toggle">
+        <button
+          class="toggle-pill"
+          :class="{ active: mediaType === 'video' }"
+          @click="mediaType = 'video'"
+          :title="'Video'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          <span class="toggle-label">Video</span>
+        </button>
+        <button
+          class="toggle-pill"
+          :class="{ active: mediaType === 'audio' }"
+          @click="mediaType = 'audio'"
+          :title="'Audio'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          <span class="toggle-label">Audio</span>
+        </button>
+      </div>
+
       <button
         class="btn-download"
         @click="submitDownload"
@@ -101,28 +125,6 @@ function toggleOptions(): void {
       >
         {{ store.isSubmitting ? 'Submitting…' : 'Download' }}
       </button>
-    </div>
-
-    <!-- Controls row: media type toggle + options gear -->
-    <div class="controls-row">
-      <div class="media-toggle">
-        <button
-          class="toggle-pill"
-          :class="{ active: mediaType === 'video' }"
-          @click="mediaType = 'video'"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-          Video
-        </button>
-        <button
-          class="toggle-pill"
-          :class="{ active: mediaType === 'audio' }"
-          @click="mediaType = 'audio'"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          Audio
-        </button>
-      </div>
 
       <button
         class="btn-options"
@@ -172,38 +174,15 @@ function toggleOptions(): void {
   width: 100%;
 }
 
-.input-row {
-  display: flex;
-  gap: var(--space-sm);
-}
-
 .url-field {
-  flex: 1;
+  width: 100%;
   font-size: var(--font-size-base);
 }
 
-.btn-download {
-  white-space: nowrap;
-  padding: var(--space-sm) var(--space-lg);
-  font-weight: 600;
-  background: var(--color-accent);
-  color: var(--color-bg);
-}
-
-.btn-download:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Controls row */
-.controls-row {
+/* Action row: toggle | download | gear */
+.action-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-sm);
 }
 
@@ -213,6 +192,7 @@ button:disabled {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .toggle-pill {
@@ -225,7 +205,7 @@ button:disabled {
   border: none;
   border-radius: 0;
   font-size: var(--font-size-sm);
-  min-height: 32px;
+  min-height: 38px;
   transition: all 0.15s ease;
 }
 
@@ -243,13 +223,37 @@ button:disabled {
   color: var(--color-accent);
 }
 
+.toggle-label {
+  /* Visible by default, hidden at narrow widths */
+}
+
+.btn-download {
+  flex: 1;
+  white-space: nowrap;
+  padding: var(--space-sm) var(--space-lg);
+  font-weight: 600;
+  min-height: 38px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.btn-download:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-options {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   padding: 0;
+  flex-shrink: 0;
   background: var(--color-surface);
   color: var(--color-text-muted);
   border: 1px solid var(--color-border);
@@ -327,14 +331,21 @@ button:disabled {
   font-size: var(--font-size-sm);
 }
 
-/* Mobile: stack vertically */
-@media (max-width: 767px) {
-  .input-row {
-    flex-direction: column;
+/* Narrow viewports: hide toggle labels, keep icons only */
+@media (max-width: 540px) {
+  .toggle-label {
+    display: none;
   }
 
+  .toggle-pill {
+    padding: var(--space-xs) var(--space-sm);
+  }
+}
+
+/* Mobile: stack URL field above action row */
+@media (max-width: 767px) {
   .btn-download {
-    width: 100%;
+    padding: var(--space-sm) var(--space-md);
   }
 }
 </style>

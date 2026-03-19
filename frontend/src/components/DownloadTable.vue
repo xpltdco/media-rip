@@ -55,7 +55,17 @@ const sortedJobs = computed<Job[]>(() => {
 function displayName(job: Job): string {
   if (job.filename) {
     const parts = job.filename.replace(/\\/g, '/').split('/')
-    return parts[parts.length - 1]
+    const name = parts[parts.length - 1]
+    // Ensure extension is visible: if name is long, truncate the middle
+    if (name.length > 60) {
+      const ext = name.lastIndexOf('.')
+      if (ext > 0) {
+        const extension = name.slice(ext)
+        const base = name.slice(0, 55 - extension.length)
+        return `${base}…${extension}`
+      }
+    }
+    return name
   }
   try {
     const u = new URL(job.url)
@@ -92,11 +102,13 @@ function isCompleted(job: Job): boolean {
   return job.status === 'completed'
 }
 
-// File download URL
+// File download URL — filename is relative to the output directory
+// (normalized by the backend). May contain subdirectories for source templates.
 function downloadUrl(job: Job): string {
   if (!job.filename) return '#'
-  const name = job.filename.replace(/\\/g, '/').split('/').pop() || ''
-  return `/api/downloads/${encodeURIComponent(name)}`
+  const normalized = job.filename.replace(/\\/g, '/')
+  // Encode each path segment separately to preserve directory structure
+  return `/api/downloads/${normalized.split('/').map(encodeURIComponent).join('/')}`
 }
 
 // Copy download link to clipboard
