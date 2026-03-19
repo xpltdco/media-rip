@@ -102,6 +102,16 @@ function isCompleted(job: Job): boolean {
   return job.status === 'completed'
 }
 
+/** Infer whether the job is audio or video from quality/filename. */
+function isAudioJob(job: Job): boolean {
+  if (job.quality === 'bestaudio') return true
+  if (job.filename) {
+    const ext = job.filename.split('.').pop()?.toLowerCase() || ''
+    if (['mp3', 'wav', 'flac', 'opus', 'm4a', 'aac', 'ogg', 'wma'].includes(ext)) return true
+  }
+  return false
+}
+
 // File download URL — filename is relative to the output directory
 // (normalized by the backend). May contain subdirectories for source templates.
 function downloadUrl(job: Job): string {
@@ -171,7 +181,14 @@ async function clearJob(jobId: string): Promise<void> {
       </thead>
       <TransitionGroup name="table-row" tag="tbody">
         <tr v-for="job in sortedJobs" :key="job.id" :class="'row-' + job.status">
-          <td class="col-name" :title="job.url">{{ displayName(job) }}</td>
+          <td class="col-name" :title="job.url">
+            <span class="name-with-icon">
+              <!-- Media type icon -->
+              <svg v-if="isAudioJob(job)" class="media-icon audio-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <svg v-else class="media-icon video-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              <span class="name-text">{{ displayName(job) }}</span>
+            </span>
+          </td>
           <td class="col-status">
             <span class="status-badge" :class="'badge-' + job.status">
               {{ job.status }}
@@ -311,6 +328,25 @@ async function clearJob(jobId: string): Promise<void> {
 .col-name {
   min-width: 200px;
   max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.name-with-icon {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  overflow: hidden;
+}
+
+.media-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.name-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

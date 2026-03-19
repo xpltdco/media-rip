@@ -119,6 +119,25 @@ class DownloadService:
         elif job_create.quality:
             opts["format"] = job_create.quality
 
+        # Output format post-processing (e.g. convert to mp3, mp4)
+        out_fmt = job_create.output_format
+        if out_fmt:
+            if out_fmt in ("mp3", "wav", "m4a", "flac", "opus"):
+                # Audio conversion via yt-dlp postprocessor
+                opts["postprocessors"] = [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": out_fmt,
+                    "preferredquality": "0" if out_fmt in ("flac", "wav") else "192",
+                }]
+            elif out_fmt == "mp4":
+                # Prefer mp4-native streams; remux if needed
+                opts["merge_output_format"] = "mp4"
+                opts.setdefault("format", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best")
+                opts["postprocessors"] = [{
+                    "key": "FFmpegVideoRemuxer",
+                    "preferedformat": "mp4",
+                }]
+
         self._loop.run_in_executor(
             self._executor,
             self._run_download,
@@ -245,7 +264,25 @@ class DownloadService:
             except Exception:
                 logger.exception("Job %s progress hook error (status=%s)", job_id, d.get("status"))
 
+        # Track final filename after postprocessing (e.g. audio conversion)
+        final_filename = [None]  # mutable container for closure
+
+        def postprocessor_hook(d: dict) -> None:
+            """Capture the final filename after postprocessing."""
+            if d.get("status") == "finished":
+                info = d.get("info_dict", {})
+                # After postprocessing, filepath reflects the converted file
+                filepath = info.get("filepath") or info.get("filename")
+                if filepath:
+                    abs_path = Path(filepath).resolve()
+                    out_dir = Path(self._config.downloads.output_dir).resolve()
+                    try:
+                        final_filename[0] = str(abs_path.relative_to(out_dir))
+                    except ValueError:
+                        final_filename[0] = abs_path.name
+
         opts["progress_hooks"] = [progress_hook]
+        opts["postprocessor_hooks"] = [postprocessor_hook]
 
         try:
             # Mark as downloading and notify SSE
@@ -277,6 +314,11 @@ class DownloadService:
                     relative_fn = None
 
                 ydl.download([url])
+
+            # Use postprocessor's final filename if available (handles
+            # audio conversion changing .webm → .mp3 etc.)
+            if final_filename[0]:
+                relative_fn = final_filename[0]
 
             # Persist filename to DB (progress hooks may not have fired
             # if the file already existed)

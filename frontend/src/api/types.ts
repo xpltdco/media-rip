@@ -40,6 +40,8 @@ export interface JobCreate {
   format_id?: string | null
   quality?: string | null
   output_template?: string | null
+  media_type?: string | null       // "video" | "audio"
+  output_format?: string | null    // e.g. "mp3", "wav", "mp4", "webm"
 }
 
 export interface ProgressEvent {

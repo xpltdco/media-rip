@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { api } from '@/api/client'
 import { useDownloadsStore } from '@/stores/downloads'
 import FormatPicker from './FormatPicker.vue'
@@ -16,6 +16,19 @@ const showOptions = ref(false)
 
 type MediaType = 'video' | 'audio'
 const mediaType = ref<MediaType>('video')
+const outputFormat = ref<string>('auto')
+
+const audioFormats = ['auto', 'mp3', 'wav', 'm4a', 'flac', 'opus'] as const
+const videoFormats = ['auto', 'mp4', 'webm'] as const
+
+const availableFormats = computed(() =>
+  mediaType.value === 'audio' ? audioFormats : videoFormats
+)
+
+// Reset output format when switching media type
+watch(mediaType, () => {
+  outputFormat.value = 'auto'
+})
 
 /** Whether formats have been fetched for the current URL. */
 const formatsReady = computed(() => formats.value.length > 0)
@@ -47,6 +60,8 @@ async function submitDownload(): Promise<void> {
       url: trimmed,
       format_id: selectedFormatId.value,
       quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
+      media_type: mediaType.value,
+      output_format: outputFormat.value === 'auto' ? null : outputFormat.value,
     })
     // Reset form on success
     url.value = ''
@@ -55,6 +70,7 @@ async function submitDownload(): Promise<void> {
     selectedFormatId.value = null
     extractError.value = null
     mediaType.value = 'video'
+    outputFormat.value = 'auto'
   } catch {
     // Error already in store.submitError
   }
@@ -80,6 +96,11 @@ function toggleOptions(): void {
     extractFormats()
   }
 }
+
+function formatLabel(fmt: string): string {
+  if (fmt === 'auto') return 'Auto'
+  return fmt.toUpperCase()
+}
 </script>
 
 <template>
@@ -95,8 +116,18 @@ function toggleOptions(): void {
       :disabled="isExtracting || store.isSubmitting"
     />
 
-    <!-- Action row: media toggle, download button, gear -->
+    <!-- Action row: gear, media toggle, download button -->
     <div class="action-row">
+      <button
+        class="btn-options"
+        :class="{ active: showOptions }"
+        @click="toggleOptions"
+        :disabled="!url.trim()"
+        title="Format options"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+
       <div class="media-toggle">
         <button
           class="toggle-pill"
@@ -125,16 +156,6 @@ function toggleOptions(): void {
       >
         {{ store.isSubmitting ? 'Submitting…' : 'Download' }}
       </button>
-
-      <button
-        class="btn-options"
-        :class="{ active: showOptions }"
-        @click="toggleOptions"
-        :disabled="!url.trim()"
-        title="Format options"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
     </div>
 
     <div v-if="isExtracting" class="extract-loading">
@@ -150,9 +171,26 @@ function toggleOptions(): void {
       {{ store.submitError }}
     </div>
 
-    <!-- Collapsible format picker -->
+    <!-- Collapsible options panel -->
     <Transition name="options-slide">
       <div v-if="showOptions" class="options-panel">
+        <!-- Output format selector -->
+        <div class="format-selector">
+          <label class="format-label">Output format</label>
+          <div class="format-chips">
+            <button
+              v-for="fmt in availableFormats"
+              :key="fmt"
+              class="format-chip"
+              :class="{ active: outputFormat === fmt }"
+              @click="outputFormat = fmt"
+            >
+              {{ formatLabel(fmt) }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Advanced format picker from yt-dlp extract_info -->
         <FormatPicker
           v-if="formatsReady"
           :formats="formats"
@@ -179,11 +217,37 @@ function toggleOptions(): void {
   font-size: var(--font-size-base);
 }
 
-/* Action row: toggle | download | gear */
+/* Action row: gear | toggle | download */
 .action-row {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.btn-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.btn-options:hover:not(:disabled) {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn-options.active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .media-toggle {
@@ -246,32 +310,6 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.btn-options {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  flex-shrink: 0;
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
-}
-
-.btn-options:hover:not(:disabled) {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-}
-
-.btn-options.active {
-  color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-}
-
 /* Loading / errors */
 .extract-loading {
   display: flex;
@@ -302,9 +340,55 @@ button:disabled {
   padding: var(--space-sm);
 }
 
-/* Options panel transition */
+/* Options panel */
 .options-panel {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.format-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) 0;
+}
+
+.format-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.format-chips {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.format-chip {
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 30px;
+}
+
+.format-chip:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.format-chip.active {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .options-slide-enter-active,
@@ -342,7 +426,7 @@ button:disabled {
   }
 }
 
-/* Mobile: stack URL field above action row */
+/* Mobile */
 @media (max-width: 767px) {
   .btn-download {
     padding: var(--space-sm) var(--space-md);
