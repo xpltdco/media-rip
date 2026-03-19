@@ -22,7 +22,17 @@ onMounted(async () => {
 </script>
 
 <template>
-  <AppHeader />
-  <router-view />
-  <AppFooter />
+  <div class="app-root">
+    <AppHeader />
+    <router-view />
+    <AppFooter />
+  </div>
 </template>
+
+<style>
+.app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+</style>

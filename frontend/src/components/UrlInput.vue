@@ -22,6 +22,7 @@ const audioLocked = ref(false)  // true when source is audio-only
 // Unified loading state for URL check + format extraction
 const isAnalyzing = ref(false)
 const analyzePhase = ref<string>('')
+const analyzeError = ref<string | null>(null)
 const phaseMessages = [
   'Peeking at the URL…',
   'Interrogating the server…',
@@ -95,6 +96,7 @@ watch(url, (newUrl) => {
     formats.value = []
     selectedFormatId.value = null
     extractError.value = null
+    analyzeError.value = null
     audioLocked.value = false
     showOptions.value = false
     selectedEntries.value = new Set()
@@ -104,6 +106,7 @@ watch(url, (newUrl) => {
     formats.value = []
     selectedFormatId.value = null
     extractError.value = null
+    analyzeError.value = null
     audioLocked.value = false
     selectedEntries.value = new Set()
   }
@@ -114,6 +117,11 @@ const selectedEntries = ref<Set<number>>(new Set())
 
 /** Whether formats have been fetched for the current URL. */
 const formatsReady = computed(() => formats.value.length > 0)
+
+/** URL has been analyzed and content was found. */
+const urlReady = computed(() =>
+  !!urlInfo.value && urlInfo.value.type !== 'unknown'
+)
 
 async function extractFormats(): Promise<void> {
   const trimmed = url.value.trim()
@@ -180,9 +188,16 @@ function handlePaste(): void {
   setTimeout(async () => {
     if (url.value.trim()) {
       isAnalyzing.value = true
+      analyzeError.value = null
       startAnalyzePhase()
       try {
         await Promise.all([extractFormats(), fetchUrlInfo()])
+        // Check if URL yielded anything useful
+        if (urlInfo.value?.type === 'unknown') {
+          analyzeError.value = 'No downloadable media found at this URL.'
+        } else if (!urlInfo.value && !extractError.value) {
+          analyzeError.value = 'Could not reach this URL. Check the address and try again.'
+        }
       } finally {
         isAnalyzing.value = false
         stopAnalyzePhase()
@@ -325,7 +340,7 @@ function formatTooltip(fmt: string): string {
       <button
         class="btn-download"
         @click="submitDownload"
-        :disabled="!url.trim() || store.isSubmitting"
+        :disabled="!urlReady || isAnalyzing || store.isSubmitting"
       >
         {{ store.isSubmitting ? 'Submitting…' : 'Download' }}
       </button>
@@ -376,6 +391,10 @@ function formatTooltip(fmt: string): string {
           ⚠ {{ urlInfo.unavailable_count }} private/unavailable item{{ urlInfo.unavailable_count > 1 ? 's' : '' }} skipped
         </div>
       </div>
+    </div>
+
+    <div v-if="analyzeError" class="extract-error">
+      {{ analyzeError }}
     </div>
 
     <div v-if="extractError" class="extract-error">

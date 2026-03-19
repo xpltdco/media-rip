@@ -159,6 +159,7 @@ class DownloadService:
             "no_warnings": True,
             "noprogress": True,
             "noplaylist": True,  # Individual jobs — don't re-expand playlists
+            "overwrites": True,  # Allow re-downloading same URL with different format
         }
         if job_create.format_id:
             opts["format"] = job_create.format_id

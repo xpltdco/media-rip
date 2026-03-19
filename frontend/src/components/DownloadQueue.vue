@@ -195,6 +195,7 @@ function handleClear(): void {
 
 .btn-clear {
   min-height: 36px;
+  min-width: 70px;
   font-size: var(--font-size-sm);
   padding: var(--space-xs) var(--space-md);
   background: var(--color-surface);

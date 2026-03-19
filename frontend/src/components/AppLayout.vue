@@ -52,7 +52,7 @@ const activeTab = ref<MobileTab>('submit')
 .app-layout {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - var(--header-height));
+  flex: 1;
 }
 
 .layout-main {
