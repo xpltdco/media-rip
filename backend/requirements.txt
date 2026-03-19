@@ -1,0 +1,15 @@
+# media.rip() backend dependencies
+# Pin to known-working versions for reproducible Docker builds
+
+fastapi==0.135.1
+uvicorn[standard]==0.42.0
+sse-starlette==3.3.3
+aiosqlite==0.22.1
+pydantic==2.12.5
+pydantic-settings==2.13.1
+python-dotenv==1.2.2
+python-multipart==0.0.22
+PyYAML==6.0.2
+bcrypt==5.0.0
+APScheduler==3.11.2
+yt-dlp==2026.3.17

@@ -12,7 +12,7 @@ A user can paste any yt-dlp-supported URL, see exactly what they're about to dow
 
 ## Current State
 
-Greenfield. Spec complete (see `/PROJECT.md`). Architecture, feature, stack, and pitfall research complete (see `.planning/research/`). No code written yet.
+S01 (Foundation + Download Engine) complete. Backend foundation built: FastAPI app with yt-dlp download engine, SQLite/WAL persistence, pydantic-settings config system, SSE broker, and 4 API endpoints. 68 tests passing including real YouTube download integration tests proving the sync-to-async bridge works. Ready for S02 (SSE transport + session system).
 
 ## Architecture / Key Patterns
 

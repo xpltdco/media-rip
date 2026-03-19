@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+frontend/dist/
+*.egg-info/
+
+# Development files
+.git/
+.gsd/
+.planning/
+.github/
+.vscode/
+*.md
+!README.md
+
+# Test files
+backend/tests/
+frontend/src/tests/
+frontend/vitest.config.ts
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Misc
+.env
+.env.*
+*.log

@@ -1,0 +1,30 @@
+# media.rip() — Zero-Config Docker Compose
+#
+# Usage:
+#   docker compose up
+#
+# The app will be available at http://localhost:8080
+# Downloads are persisted in ./downloads/
+
+services:
+  mediarip:
+    image: ghcr.io/jlightner/media-rip:latest
+    # build: .  # Uncomment to build from source
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./downloads:/downloads    # Downloaded files
+      - ./themes:/themes          # Custom themes (optional)
+      - mediarip-data:/data       # Database + internal state
+    environment:
+      - MEDIARIP__SESSION__MODE=isolated
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mediarip-data:

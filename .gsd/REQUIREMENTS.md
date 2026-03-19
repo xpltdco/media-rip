@@ -206,13 +206,13 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R019 — Source-aware output templates
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: Per-site default output templates (YouTube: uploader/title, SoundCloud: uploader/title, generic: title). Configurable via config.yaml source_templates map
 - Why it matters: Sensible defaults per-site are a step up from MeTube's single global template. Organizes downloads without user effort
 - Source: user
 - Primary owning slice: M001/S01
 - Supporting slices: none
-- Validation: unmapped
+- Validation: 9 unit tests prove domain-specific lookup, www stripping, user override priority, fallback chain, custom config (S01 test_output_template.py)
 - Notes: Per-download override also supported (R025)
 
 ### R020 — Zero automatic outbound telemetry
@@ -261,13 +261,13 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ### R024 — Concurrent same-URL support
 - Class: core-capability
-- Status: active
+- Status: validated
 - Description: Jobs keyed by UUID4, not URL. Submitting the same URL twice at different qualities creates two independent jobs
 - Why it matters: Users legitimately want the same video in different formats. URL-keyed dedup would prevent this
 - Source: user
 - Primary owning slice: M001/S01
 - Supporting slices: none
-- Validation: unmapped
+- Validation: Integration test runs two simultaneous downloads of same video with different output templates — both complete successfully (S01 test_download_service::test_concurrent_downloads)
 - Notes: Intentional design per PROJECT.md
 
 ### R025 — Per-download output template override
@@ -428,12 +428,12 @@ Use it to track what is actively in scope, what has been validated by completed 
 | R016 | operability | active | M001/S02 | none | unmapped |
 | R017 | continuity | active | M001/S04 | none | unmapped |
 | R018 | primary-user-loop | active | M001/S04 | none | unmapped |
-| R019 | core-capability | active | M001/S01 | none | unmapped |
+| R019 | core-capability | validated | M001/S01 | none | 9 unit tests (S01 test_output_template.py) |
 | R020 | constraint | active | M001/S06 | all | unmapped |
 | R021 | launchability | active | M001/S06 | none | unmapped |
 | R022 | launchability | active | M001/S06 | none | unmapped |
 | R023 | operability | active | M001/S01 | M001/S04 | unmapped |
-| R024 | core-capability | active | M001/S01 | none | unmapped |
+| R024 | core-capability | validated | M001/S01 | none | integration test (S01 test_concurrent_downloads) |
 | R025 | core-capability | active | M001/S03 | none | unmapped |
 | R026 | launchability | active | M001/S06 | none | unmapped |
 | R027 | primary-user-loop | deferred | none | none | unmapped |
@@ -449,7 +449,7 @@ Use it to track what is actively in scope, what has been validated by completed 
 
 ## Coverage Summary
 
-- Active requirements: 26
-- Mapped to slices: 26
-- Validated: 0
+- Active requirements: 24
+- Mapped to slices: 24
+- Validated: 2
 - Unmapped active requirements: 0
