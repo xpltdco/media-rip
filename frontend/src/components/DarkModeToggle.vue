@@ -39,16 +39,14 @@ const theme = useThemeStore()
   height: 40px;
   background: transparent;
   color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all var(--transition-normal);
+  transition: color var(--transition-normal);
   padding: 0;
 }
 
 .dark-mode-toggle:hover {
   color: var(--color-accent);
-  border-color: var(--color-accent);
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
 }
 </style>

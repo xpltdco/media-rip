@@ -42,7 +42,7 @@
   /* ── Typography ──
    * System fonts for everything — clean and fast.
    */
-  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
 
   /* ── Effects ──
    * All effects disabled for a clean look.

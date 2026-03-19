@@ -203,6 +203,18 @@ class DownloadService:
             try:
                 event = ProgressEvent.from_yt_dlp(job_id, d)
 
+                # Normalize filename to be relative to the output directory
+                # so the frontend can construct download URLs correctly.
+                if event.filename:
+                    from pathlib import PurePosixPath, Path
+                    abs_path = Path(event.filename).resolve()
+                    out_dir = Path(self._config.downloads.output_dir).resolve()
+                    try:
+                        event.filename = str(abs_path.relative_to(out_dir))
+                    except ValueError:
+                        # Not under output_dir — use basename as fallback
+                        event.filename = abs_path.name
+
                 # Always publish to SSE broker (cheap, in-memory)
                 self._broker.publish(session_id, event)
 
