@@ -192,13 +192,20 @@ async function clearJob(jobId: string): Promise<void> {
       </thead>
       <TransitionGroup name="table-row" tag="tbody">
         <tr v-for="job in sortedJobs" :key="job.id" :class="'row-' + job.status">
-          <td class="col-name" :title="job.url">
-            <span class="name-with-icon">
+          <td class="col-name">
+            <a
+              class="name-with-icon"
+              :href="job.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              :title="job.url"
+              @click.stop
+            >
               <!-- Media type icon -->
               <svg v-if="isAudioJob(job)" class="media-icon audio-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               <svg v-else class="media-icon video-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
               <span class="name-text">{{ displayName(job) }}</span>
-            </span>
+            </a>
           </td>
           <td class="col-status">
             <span class="status-badge" :class="'badge-' + job.status">
@@ -298,6 +305,7 @@ async function clearJob(jobId: string): Promise<void> {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-sm);
+  table-layout: fixed;
 }
 
 .download-table thead {
@@ -356,6 +364,14 @@ async function clearJob(jobId: string): Promise<void> {
   align-items: center;
   gap: var(--space-sm);
   overflow: hidden;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.name-with-icon:hover .name-text {
+  text-decoration: underline;
+  color: var(--color-accent-primary, #00a8ff);
 }
 
 .media-icon {
@@ -368,6 +384,7 @@ async function clearJob(jobId: string): Promise<void> {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .col-status { width: 100px; }

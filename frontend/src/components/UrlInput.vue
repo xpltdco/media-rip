@@ -195,6 +195,7 @@ function handlePaste(): void {
         // Check if URL yielded anything useful
         if (urlInfo.value?.type === 'unknown') {
           analyzeError.value = 'No downloadable media found at this URL.'
+          urlInfo.value = null
         } else if (!urlInfo.value && !extractError.value) {
           analyzeError.value = 'Could not reach this URL. Check the address and try again.'
         }
