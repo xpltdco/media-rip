@@ -3,16 +3,20 @@
 A self-hostable yt-dlp web frontend. Paste a URL, pick quality, download — with session isolation, real-time progress, and a cyberpunk default theme.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![Docker](https://img.shields.io/badge/docker-ghcr.io%2Fxpltdco%2Fmedia--rip-blue)
 
 ## Features
 
 - **Paste & download** — Any URL yt-dlp supports. Format picker with live quality extraction.
 - **Real-time progress** — Server-Sent Events stream download progress to the browser instantly.
 - **Session isolation** — Each browser gets its own download queue. No cross-talk.
+- **Playlist support** — Collapsible parent/child jobs with per-video status tracking.
 - **Three built-in themes** — Cyberpunk (default), Dark, Light. Switch in the header.
 - **Custom themes** — Drop a CSS file into `/themes` volume. No rebuild needed.
-- **Admin panel** — Session management, storage info, manual purge. Protected by HTTP Basic + bcrypt.
-- **Zero telemetry** — No outbound requests. Your downloads are your business.
+- **Admin panel** — Session management, storage info, manual purge, error logs. Protected by bcrypt auth.
+- **Cookie auth** — Upload cookies.txt per session for paywalled/private content.
+- **Auto-purge** — Configurable scheduled cleanup of old downloads and logs.
+- **Zero telemetry** — No outbound requests. No CDN, no fonts, no analytics. CSP enforced.
 - **Mobile-friendly** — Responsive layout with bottom tabs on small screens.
 
 ## Quickstart
@@ -25,6 +29,17 @@ Open [http://localhost:8080](http://localhost:8080) and paste a URL.
 
 Downloads are saved to `./downloads/`.
 
+## Docker Volumes
+
+| Mount | Purpose | Persists |
+|-------|---------|----------|
+| `/downloads` | Downloaded media files | ✅ Bind mount recommended |
+| `/data` | SQLite database, session cookies, error logs | ✅ Named volume recommended |
+| `/themes` | Custom theme CSS overrides (optional) | Read-only bind mount |
+| `/app/config.yaml` | YAML config file (optional) | Read-only bind mount |
+
+**Important:** The `/data` volume contains the database (download history, admin state, error logs) and session cookie files. Use a named volume or bind mount to persist across container restarts.
+
 ## Configuration
 
 All settings have sensible defaults. Override via environment variables or `config.yaml`:
@@ -32,6 +47,8 @@ All settings have sensible defaults. Override via environment variables or `conf
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MEDIARIP__SERVER__PORT` | `8000` | Internal server port |
+| `MEDIARIP__SERVER__DB_PATH` | `/data/mediarip.db` | SQLite database path |
+| `MEDIARIP__SERVER__DATA_DIR` | `/data` | Persistent data directory |
 | `MEDIARIP__DOWNLOADS__OUTPUT_DIR` | `/downloads` | Where files are saved |
 | `MEDIARIP__DOWNLOADS__MAX_CONCURRENT` | `3` | Maximum parallel downloads |
 | `MEDIARIP__SESSION__MODE` | `isolated` | `isolated`, `shared`, or `open` |
@@ -41,6 +58,7 @@ All settings have sensible defaults. Override via environment variables or `conf
 | `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Bcrypt hash of admin password |
 | `MEDIARIP__PURGE__ENABLED` | `false` | Enable auto-purge of old downloads |
 | `MEDIARIP__PURGE__MAX_AGE_HOURS` | `168` | Delete downloads older than this |
+| `MEDIARIP__PURGE__CRON` | `0 3 * * *` | Purge schedule (cron syntax) |
 | `MEDIARIP__THEMES_DIR` | `/themes` | Custom themes directory |
 
 ### Session Modes
@@ -48,6 +66,25 @@ All settings have sensible defaults. Override via environment variables or `conf
 - **isolated** (default): Each browser session has its own private queue.
 - **shared**: All sessions see all downloads. Good for household/team use.
 - **open**: No session tracking at all.
+
+### Admin Panel
+
+Enable the admin panel to manage sessions, view storage, trigger manual purge, and review error logs:
+
+```yaml
+# docker-compose.yml environment section
+MEDIARIP__ADMIN__ENABLED: "true"
+MEDIARIP__ADMIN__USERNAME: "admin"
+MEDIARIP__ADMIN__PASSWORD_HASH: "$2b$12$..."  # see below
+```
+
+Generate a bcrypt password hash:
+```bash
+docker run --rm python:3.12-slim python -c \
+  "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
+```
+
+Admin state (login, settings changes) persists in the SQLite database at `/data/mediarip.db`.
 
 ## Custom Themes
 
@@ -70,7 +107,7 @@ See the built-in themes in `frontend/src/themes/` for fully commented examples.
 
 ## Secure Deployment
 
-For production with TLS:
+For production with TLS, use the included Caddy reverse proxy:
 
 ```bash
 cp docker-compose.example.yml docker-compose.yml
@@ -79,12 +116,7 @@ cp .env.example .env
 docker compose up -d
 ```
 
-This uses Caddy as a reverse proxy with automatic Let's Encrypt TLS.
-
-Generate an admin password hash:
-```bash
-python -c "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
-```
+Caddy automatically provisions Let's Encrypt TLS certificates for your domain.
 
 ## Development
 
@@ -95,7 +127,7 @@ cd backend
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/pip install pytest pytest-asyncio pytest-anyio httpx ruff
-.venv/bin/python -m pytest tests/ -v
+.venv/bin/python -m pytest tests/ -v -m "not integration"
 ```
 
 ### Frontend
@@ -120,6 +152,7 @@ npm run build     # Production build
 | `/api/formats` | GET | Extract available formats for a URL |
 | `/api/events` | GET | SSE stream for real-time progress |
 | `/api/cookies` | POST | Upload cookies.txt for authenticated downloads |
+| `/api/cookies` | DELETE | Remove cookies.txt for current session |
 | `/api/themes` | GET | List available custom themes |
 | `/api/admin/*` | GET/POST | Admin endpoints (requires auth) |
 
@@ -130,6 +163,7 @@ npm run build     # Production build
 - **Transport**: Server-Sent Events for real-time progress
 - **Database**: SQLite with WAL mode
 - **Styling**: CSS custom properties (no Tailwind, no component library)
+- **Container**: Multi-stage build, non-root user, amd64 + arm64
 
 ## License
 

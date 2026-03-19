@@ -5,6 +5,7 @@
 #
 # The app will be available at http://localhost:8080
 # Downloads are persisted in ./downloads/
+# Database + session state persisted in the mediarip-data volume.
 
 services:
   mediarip:
@@ -13,11 +14,20 @@ services:
     ports:
       - "8080:8000"
     volumes:
-      - ./downloads:/downloads    # Downloaded files
-      - ./themes:/themes          # Custom themes (optional)
-      - mediarip-data:/data       # Database + internal state
+      - ./downloads:/downloads      # Downloaded media files (browsable)
+      - mediarip-data:/data          # Database, sessions, error logs
+      # Optional:
+      # - ./themes:/themes:ro        # Custom theme CSS overrides
+      # - ./config.yaml:/app/config.yaml:ro  # YAML config file
     environment:
       - MEDIARIP__SESSION__MODE=isolated
+      # Admin panel (disabled by default):
+      # - MEDIARIP__ADMIN__ENABLED=true
+      # - MEDIARIP__ADMIN__USERNAME=admin
+      # - MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...your.bcrypt.hash...
+      # Auto-purge (disabled by default):
+      # - MEDIARIP__PURGE__ENABLED=true
+      # - MEDIARIP__PURGE__MAX_AGE_HOURS=168
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]

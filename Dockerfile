@@ -55,7 +55,8 @@ USER mediarip
 
 # Environment defaults
 ENV MEDIARIP__DOWNLOADS__OUTPUT_DIR=/downloads \
-    MEDIARIP__DATABASE__PATH=/data/mediarip.db \
+    MEDIARIP__SERVER__DB_PATH=/data/mediarip.db \
+    MEDIARIP__SERVER__DATA_DIR=/data \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8000

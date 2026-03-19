@@ -20,6 +20,10 @@ coverage/
 tmp/
 .env
 .env.*
+!.env.example
+backend/tests/
+backend/mediarip.db*
+backend/media_rip.egg-info/
 
 # Ignore git
 .git/
@@ -31,3 +35,8 @@ tmp/
 *.code-workspace
 *.swp
 *.swo
+
+# Ignore docs / meta
+LICENSE
+README.md
+CHANGELOG.md

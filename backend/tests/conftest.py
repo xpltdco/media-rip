@@ -26,7 +26,10 @@ def test_config(tmp_path: Path) -> AppConfig:
     """Return an AppConfig with downloads.output_dir pointing at a temp dir."""
     dl_dir = tmp_path / "downloads"
     dl_dir.mkdir()
-    return AppConfig(downloads={"output_dir": str(dl_dir)})
+    return AppConfig(
+        server={"data_dir": str(tmp_path / "data")},
+        downloads={"output_dir": str(dl_dir)},
+    )
 
 
 @pytest_asyncio.fixture()
@@ -75,7 +78,7 @@ async def client(tmp_path: Path):
 
     # Build config pointing at temp resources
     config = AppConfig(
-        server={"db_path": db_path},
+        server={"db_path": db_path, "data_dir": str(tmp_path / "data")},
         downloads={"output_dir": str(dl_dir)},
     )
 
