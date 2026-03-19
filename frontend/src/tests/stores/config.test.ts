@@ -28,6 +28,7 @@ describe('config store', () => {
     const mockConfig = {
       session_mode: 'isolated',
       default_theme: 'dark',
+      welcome_message: 'Test welcome',
       purge_enabled: false,
       max_concurrent_downloads: 3,
     }

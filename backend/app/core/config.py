@@ -73,6 +73,7 @@ class UIConfig(BaseModel):
     """UI preferences."""
 
     default_theme: str = "dark"
+    welcome_message: str = "Paste any video or audio URL. We rip it, you download it. No accounts, no tracking."
 
 
 class AdminConfig(BaseModel):

@@ -67,6 +67,7 @@ export interface FormatInfo {
 export interface PublicConfig {
   session_mode: string
   default_theme: string
+  welcome_message: string
   purge_enabled: boolean
   max_concurrent_downloads: number
 }

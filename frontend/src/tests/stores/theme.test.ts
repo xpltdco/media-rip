@@ -90,4 +90,49 @@ describe('theme store', () => {
     expect(store.currentMeta?.id).toBe('cyberpunk')
     expect(store.currentMeta?.name).toBe('Cyberpunk')
   })
+
+  it('isDark is true for cyberpunk and dark themes', () => {
+    const store = useThemeStore()
+    store.init()
+    expect(store.isDark).toBe(true)
+
+    store.setTheme('dark')
+    expect(store.isDark).toBe(true)
+  })
+
+  it('isDark is false for light theme', () => {
+    const store = useThemeStore()
+    store.init()
+    store.setTheme('light')
+    expect(store.isDark).toBe(false)
+  })
+
+  it('toggleDarkMode switches from dark to light', () => {
+    const store = useThemeStore()
+    store.init() // starts on cyberpunk (dark)
+    store.toggleDarkMode()
+    expect(store.currentTheme).toBe('light')
+    expect(store.isDark).toBe(false)
+  })
+
+  it('toggleDarkMode switches from light back to last dark theme', () => {
+    const store = useThemeStore()
+    store.init()
+    // Start on cyberpunk, toggle to light, toggle back
+    store.toggleDarkMode()
+    expect(store.currentTheme).toBe('light')
+    store.toggleDarkMode()
+    expect(store.currentTheme).toBe('cyberpunk')
+    expect(store.isDark).toBe(true)
+  })
+
+  it('toggleDarkMode remembers dark theme when starting from dark', () => {
+    const store = useThemeStore()
+    store.init()
+    store.setTheme('dark') // switch to the "dark" theme (not cyberpunk)
+    store.toggleDarkMode()
+    expect(store.currentTheme).toBe('light')
+    store.toggleDarkMode()
+    expect(store.currentTheme).toBe('dark') // returns to dark, not cyberpunk
+  })
 })
