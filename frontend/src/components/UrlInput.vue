@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { api } from '@/api/client'
 import { useDownloadsStore } from '@/stores/downloads'
 import FormatPicker from './FormatPicker.vue'
@@ -12,7 +12,13 @@ const formats = ref<FormatInfo[]>([])
 const selectedFormatId = ref<string | null>(null)
 const isExtracting = ref(false)
 const extractError = ref<string | null>(null)
-const showFormats = ref(false)
+const showOptions = ref(false)
+
+type MediaType = 'video' | 'audio'
+const mediaType = ref<MediaType>('video')
+
+/** Whether formats have been fetched for the current URL. */
+const formatsReady = computed(() => formats.value.length > 0)
 
 async function extractFormats(): Promise<void> {
   const trimmed = url.value.trim()
@@ -21,12 +27,10 @@ async function extractFormats(): Promise<void> {
   isExtracting.value = true
   extractError.value = null
   formats.value = []
-  showFormats.value = false
   selectedFormatId.value = null
 
   try {
     formats.value = await api.getFormats(trimmed)
-    showFormats.value = true
   } catch (err: any) {
     extractError.value = err.message || 'Failed to extract formats'
   } finally {
@@ -42,13 +46,15 @@ async function submitDownload(): Promise<void> {
     await store.submitDownload({
       url: trimmed,
       format_id: selectedFormatId.value,
+      quality: mediaType.value === 'audio' && !selectedFormatId.value ? 'bestaudio' : null,
     })
     // Reset form on success
     url.value = ''
     formats.value = []
-    showFormats.value = false
+    showOptions.value = false
     selectedFormatId.value = null
     extractError.value = null
+    mediaType.value = 'video'
   } catch {
     // Error already in store.submitError
   }
@@ -59,12 +65,20 @@ function onFormatSelect(formatId: string | null): void {
 }
 
 function handlePaste(): void {
-  // Auto-extract on paste after a tick (value not yet updated in paste event)
+  // Auto-extract on paste (populate formats silently in background)
   setTimeout(() => {
     if (url.value.trim()) {
       extractFormats()
     }
   }, 50)
+}
+
+function toggleOptions(): void {
+  showOptions.value = !showOptions.value
+  // Extract formats when opening options if we haven't yet
+  if (showOptions.value && !formatsReady.value && url.value.trim() && !isExtracting.value) {
+    extractFormats()
+  }
 }
 </script>
 
@@ -77,24 +91,47 @@ function handlePaste(): void {
         placeholder="Paste a URL to download…"
         class="url-field"
         @paste="handlePaste"
-        @keydown.enter="showFormats ? submitDownload() : extractFormats()"
-        :disabled="isExtracting"
+        @keydown.enter="submitDownload"
+        :disabled="isExtracting || store.isSubmitting"
       />
       <button
-        v-if="!showFormats"
-        class="btn-extract"
-        @click="extractFormats"
-        :disabled="!url.trim() || isExtracting"
-      >
-        {{ isExtracting ? 'Extracting…' : 'Get Formats' }}
-      </button>
-      <button
-        v-else
         class="btn-download"
         @click="submitDownload"
-        :disabled="store.isSubmitting"
+        :disabled="!url.trim() || store.isSubmitting"
       >
         {{ store.isSubmitting ? 'Submitting…' : 'Download' }}
+      </button>
+    </div>
+
+    <!-- Controls row: media type toggle + options gear -->
+    <div class="controls-row">
+      <div class="media-toggle">
+        <button
+          class="toggle-pill"
+          :class="{ active: mediaType === 'video' }"
+          @click="mediaType = 'video'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          Video
+        </button>
+        <button
+          class="toggle-pill"
+          :class="{ active: mediaType === 'audio' }"
+          @click="mediaType = 'audio'"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          Audio
+        </button>
+      </div>
+
+      <button
+        class="btn-options"
+        :class="{ active: showOptions }"
+        @click="toggleOptions"
+        :disabled="!url.trim()"
+        title="Format options"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
 
@@ -111,11 +148,19 @@ function handlePaste(): void {
       {{ store.submitError }}
     </div>
 
-    <FormatPicker
-      v-if="showFormats"
-      :formats="formats"
-      @select="onFormatSelect"
-    />
+    <!-- Collapsible format picker -->
+    <Transition name="options-slide">
+      <div v-if="showOptions" class="options-panel">
+        <FormatPicker
+          v-if="formatsReady"
+          :formats="formats"
+          @select="onFormatSelect"
+        />
+        <div v-else-if="!isExtracting" class="options-hint">
+          Paste a URL and formats will load automatically.
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -137,24 +182,10 @@ function handlePaste(): void {
   font-size: var(--font-size-base);
 }
 
-.btn-extract,
 .btn-download {
   white-space: nowrap;
   padding: var(--space-sm) var(--space-lg);
   font-weight: 600;
-}
-
-.btn-extract {
-  background: var(--color-surface);
-  color: var(--color-accent);
-  border: 1px solid var(--color-accent);
-}
-
-.btn-extract:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
-}
-
-.btn-download {
   background: var(--color-accent);
   color: var(--color-bg);
 }
@@ -168,6 +199,76 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Controls row */
+.controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.media-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.toggle-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: none;
+  border-radius: 0;
+  font-size: var(--font-size-sm);
+  min-height: 32px;
+  transition: all 0.15s ease;
+}
+
+.toggle-pill:not(:last-child) {
+  border-right: 1px solid var(--color-border);
+}
+
+.toggle-pill:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.toggle-pill.active {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+}
+
+.btn-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.btn-options:hover:not(:disabled) {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.btn-options.active {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
+/* Loading / errors */
 .extract-loading {
   display: flex;
   align-items: center;
@@ -197,13 +298,41 @@ button:disabled {
   padding: var(--space-sm);
 }
 
+/* Options panel transition */
+.options-panel {
+  overflow: hidden;
+}
+
+.options-slide-enter-active,
+.options-slide-leave-active {
+  transition: all 0.25s ease;
+}
+
+.options-slide-enter-from,
+.options-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.options-slide-enter-to,
+.options-slide-leave-from {
+  opacity: 1;
+  max-height: 400px;
+}
+
+.options-hint {
+  padding: var(--space-md);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 /* Mobile: stack vertically */
 @media (max-width: 767px) {
   .input-row {
     flex-direction: column;
   }
 
-  .btn-extract,
   .btn-download {
     width: 100%;
   }
