@@ -3,7 +3,7 @@
 # Stage 2: Install backend deps (Python)
 # Stage 3: Slim runtime with ffmpeg
 #
-# Image: ghcr.io/xpltd/media-rip
+# Image: ghcr.io/xpltdco/media-rip
 # Platforms: linux/amd64, linux/arm64
 
 # ── Stage 1: Frontend build ──────────────────────────────────────────

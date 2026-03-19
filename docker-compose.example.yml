@@ -14,7 +14,7 @@
 
 services:
   media-rip:
-    image: ghcr.io/xpltd/media-rip:latest
+    image: ghcr.io/xpltdco/media-rip:latest
     container_name: media-rip
     restart: unless-stopped
     volumes:
