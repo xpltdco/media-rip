@@ -23,6 +23,9 @@ const defaultAudioFormat = ref('auto')
 const settingsSaved = ref(false)
 const privacyMode = ref(false)
 const privacyRetentionHours = ref(24)
+const privacySaved = ref(false)
+const purgeConfirming = ref(false)
+let purgeConfirmTimer: ReturnType<typeof setTimeout> | null = null
 
 // Change password state
 const currentPassword = ref('')
@@ -70,14 +73,35 @@ async function saveSettings() {
     welcome_message: welcomeMessage.value,
     default_video_format: defaultVideoFormat.value,
     default_audio_format: defaultAudioFormat.value,
+  })
+  if (ok) {
+    await configStore.loadConfig()
+    settingsSaved.value = true
+    setTimeout(() => { settingsSaved.value = false }, 3000)
+  }
+}
+
+async function savePrivacy() {
+  privacySaved.value = false
+  const ok = await store.updateSettings({
     privacy_mode: privacyMode.value,
     privacy_retention_hours: privacyRetentionHours.value,
   })
   if (ok) {
-    // Reload public config so main page picks up new defaults
     await configStore.loadConfig()
-    settingsSaved.value = true
-    setTimeout(() => { settingsSaved.value = false }, 3000)
+    privacySaved.value = true
+    setTimeout(() => { privacySaved.value = false }, 3000)
+  }
+}
+
+function handlePurgeClick() {
+  if (purgeConfirming.value) {
+    purgeConfirming.value = false
+    if (purgeConfirmTimer) clearTimeout(purgeConfirmTimer)
+    store.triggerPurge()
+  } else {
+    purgeConfirming.value = true
+    purgeConfirmTimer = setTimeout(() => { purgeConfirming.value = false }, 3000)
   }
 }
 
@@ -290,18 +314,11 @@ function formatFilesize(bytes: number | null): string {
           </div>
 
           <div class="settings-actions">
-            <button
-              @click="saveSettings"
-              :disabled="store.isLoading"
-              class="btn-save"
-            >
-              {{ store.isLoading ? 'Saving…' : 'Save Settings' }}
+            <button @click="saveSettings" :disabled="store.isLoading" class="btn-save">
+              {{ store.isLoading ? 'Saving…' : 'Save' }}
             </button>
             <span v-if="settingsSaved" class="save-confirm">✓ Saved</span>
           </div>
-          <p class="field-hint" style="margin-top: var(--space-sm);">
-            Changes are applied immediately but reset on server restart.
-          </p>
         </div>
 
         <hr class="settings-divider" />
@@ -320,7 +337,7 @@ function formatFilesize(bytes: number | null): string {
             </label>
             <p class="field-hint">
               Automatically purge download history, files, and session data
-              after the retention period. Changes are saved with the button above.
+              after the retention period.
             </p>
             <div v-if="privacyMode" class="retention-setting">
               <label class="retention-label">Retention period</label>
@@ -340,24 +357,33 @@ function formatFilesize(bytes: number | null): string {
             </div>
           </div>
 
-          <div class="settings-field" style="margin-top: var(--space-md);">
+          <div class="settings-actions">
+            <button @click="savePrivacy" :disabled="store.isLoading" class="btn-save">
+              {{ store.isLoading ? 'Saving…' : 'Save' }}
+            </button>
+            <span v-if="privacySaved" class="save-confirm">✓ Saved</span>
+          </div>
+
+          <div class="settings-field" style="margin-top: var(--space-lg);">
             <label>Manual Purge</label>
             <p class="field-hint">
               Immediately clear all completed and failed downloads — removes
-              database records and files from disk. Active downloads are never affected.
+              database records, files from disk, and orphaned sessions.
+              Active downloads are never affected.
             </p>
             <button
-              @click="store.triggerPurge()"
+              @click="handlePurgeClick"
               :disabled="store.isLoading"
               class="btn-purge"
+              :class="{ 'btn-confirm': purgeConfirming }"
             >
-              {{ store.isLoading ? 'Purging…' : 'Run Purge Now' }}
+              {{ store.isLoading ? 'Purging…' : purgeConfirming ? 'Sure?' : 'Run Purge Now' }}
             </button>
             <div v-if="store.purgeResult" class="purge-result">
-              <p>Rows deleted: {{ store.purgeResult.rows_deleted }}</p>
-              <p>Files deleted: {{ store.purgeResult.files_deleted }}</p>
-              <p>Files already gone: {{ store.purgeResult.files_missing }}</p>
-              <p>Active jobs skipped: {{ store.purgeResult.active_skipped }}</p>
+              <p>{{ store.purgeResult.rows_deleted }} jobs removed</p>
+              <p>{{ store.purgeResult.files_deleted }} files deleted</p>
+              <p v-if="store.purgeResult.sessions_deleted">{{ store.purgeResult.sessions_deleted }} sessions cleared</p>
+              <p v-if="store.purgeResult.active_skipped">{{ store.purgeResult.active_skipped }} active jobs skipped</p>
             </div>
           </div>
         </div>
@@ -414,6 +440,10 @@ function formatFilesize(bytes: number | null): string {
             </div>
           </div>
         </div>
+
+        <p class="field-hint" style="margin-top: var(--space-lg);">
+          All settings are applied immediately but reset on server restart.
+        </p>
       </div>
     </template>
   </div>
@@ -532,9 +562,15 @@ h3 {
   color: var(--color-bg);
   font-weight: 600;
   margin-top: var(--space-md);
+  min-width: 130px;
+  transition: background-color 0.15s;
 }
 
 .btn-purge:hover:not(:disabled) {
+  background: var(--color-error);
+}
+
+.btn-purge.btn-confirm {
   background: var(--color-error);
 }
 
