@@ -129,6 +129,7 @@ export const useAdminStore = defineStore('admin', () => {
 
   return {
     username,
+    password,
     isAuthenticated,
     authError,
     sessions,

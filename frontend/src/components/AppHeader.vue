@@ -1,11 +1,18 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import DarkModeToggle from '@/components/DarkModeToggle.vue'
+
+const router = useRouter()
+
+function goHome(): void {
+  router.push('/')
+}
 </script>
 
 <template>
   <header class="app-header">
     <div class="header-content">
-      <h1 class="header-title">
+      <h1 class="header-title" @click="goHome" role="link" tabindex="0" @keydown.enter="goHome" title="Back to downloads">
         <span class="title-media">media</span><span class="title-dot">.</span><span class="title-rip">rip</span><span class="title-parens">()</span>
       </h1>
       <div class="header-right">
@@ -42,6 +49,8 @@ import DarkModeToggle from '@/components/DarkModeToggle.vue'
   font-weight: 700;
   font-family: var(--font-display);
   letter-spacing: -0.02em;
+  cursor: pointer;
+  user-select: none;
 }
 
 .title-media { color: var(--color-text); }

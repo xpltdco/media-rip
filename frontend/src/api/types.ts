@@ -82,6 +82,21 @@ export interface HealthStatus {
   queue_depth: number
 }
 
+export interface UrlInfoEntry {
+  title: string
+  url: string
+  duration: number | null
+}
+
+export interface UrlInfo {
+  type: 'single' | 'playlist' | 'unknown'
+  title: string | null
+  count?: number
+  entries: UrlInfoEntry[]
+  duration?: number | null
+  is_audio_only: boolean
+}
+
 /**
  * SSE event types received from GET /api/events.
  */

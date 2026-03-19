@@ -6,7 +6,7 @@
  * relative paths work without configuration.
  */
 
-import type { Job, JobCreate, FormatInfo, PublicConfig, HealthStatus } from './types'
+import type { Job, JobCreate, FormatInfo, PublicConfig, HealthStatus, UrlInfo } from './types'
 
 class ApiError extends Error {
   constructor(
@@ -76,6 +76,14 @@ export const api = {
   /** Health check. */
   async getHealth(): Promise<HealthStatus> {
     return request<HealthStatus>('/api/health')
+  },
+
+  /** Get URL metadata (title, playlist detection, audio-only detection). */
+  async getUrlInfo(url: string): Promise<UrlInfo> {
+    return request<UrlInfo>('/api/url-info', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    })
   },
 }
 

@@ -113,6 +113,7 @@ class DownloadService:
             "quiet": True,
             "no_warnings": True,
             "noprogress": True,
+            "noplaylist": False,
         }
         if job_create.format_id:
             opts["format"] = job_create.format_id
@@ -377,6 +378,66 @@ class DownloadService:
         except Exception:
             logger.exception("Format extraction failed for %s", url)
             return None
+
+    def _extract_url_info(self, url: str) -> dict | None:
+        """Extract URL metadata including playlist detection."""
+        opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "extract_flat": "in_playlist",
+            "noplaylist": False,
+        }
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                return ydl.extract_info(url, download=False)
+        except Exception:
+            logger.exception("URL info extraction failed for %s", url)
+            return None
+
+    async def get_url_info(self, url: str) -> dict:
+        """Get URL metadata: title, type (single/playlist), entries."""
+        info = await self._loop.run_in_executor(
+            self._executor,
+            self._extract_url_info,
+            url,
+        )
+        if not info:
+            return {"type": "unknown", "title": None, "entries": []}
+
+        result_type = info.get("_type", "video")
+        if result_type == "playlist" or "entries" in info:
+            entries_raw = info.get("entries") or []
+            entries = []
+            for e in entries_raw:
+                if isinstance(e, dict):
+                    entries.append({
+                        "title": e.get("title") or e.get("id", "Unknown"),
+                        "url": e.get("url") or e.get("webpage_url", ""),
+                        "duration": e.get("duration"),
+                    })
+            # Detect audio-only source (no video formats)
+            is_audio_only = False
+            if info.get("categories"):
+                is_audio_only = "Music" in info["categories"]
+            return {
+                "type": "playlist",
+                "title": info.get("title", "Playlist"),
+                "count": len(entries),
+                "entries": entries,
+                "is_audio_only": is_audio_only,
+            }
+        else:
+            # Single video/track
+            has_video = bool(info.get("vcodec") and info["vcodec"] != "none")
+            is_audio_only = not has_video
+            return {
+                "type": "single",
+                "title": info.get("title"),
+                "duration": info.get("duration"),
+                "is_audio_only": is_audio_only,
+                "entries": [],
+            }
 
 
 # ---------------------------------------------------------------------------

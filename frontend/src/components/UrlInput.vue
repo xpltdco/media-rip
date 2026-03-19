@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { api } from '@/api/client'
 import { useDownloadsStore } from '@/stores/downloads'
 import FormatPicker from './FormatPicker.vue'
-import type { FormatInfo } from '@/api/types'
+import type { FormatInfo, UrlInfo } from '@/api/types'
 
 const store = useDownloadsStore()
 
@@ -13,6 +13,11 @@ const selectedFormatId = ref<string | null>(null)
 const isExtracting = ref(false)
 const extractError = ref<string | null>(null)
 const showOptions = ref(false)
+
+// URL preview state
+const urlInfo = ref<UrlInfo | null>(null)
+const isLoadingInfo = ref(false)
+const audioLocked = ref(false)  // true when source is audio-only
 
 type MediaType = 'video' | 'audio'
 const mediaType = ref<MediaType>('video')
@@ -71,6 +76,8 @@ async function submitDownload(): Promise<void> {
     extractError.value = null
     mediaType.value = 'video'
     outputFormat.value = 'auto'
+    urlInfo.value = null
+    audioLocked.value = false
   } catch {
     // Error already in store.submitError
   }
@@ -81,12 +88,41 @@ function onFormatSelect(formatId: string | null): void {
 }
 
 function handlePaste(): void {
-  // Auto-extract on paste (populate formats silently in background)
+  // Auto-extract on paste (populate formats + URL info silently in background)
   setTimeout(() => {
     if (url.value.trim()) {
       extractFormats()
+      fetchUrlInfo()
     }
   }, 50)
+}
+
+async function fetchUrlInfo(): Promise<void> {
+  const trimmed = url.value.trim()
+  if (!trimmed) return
+  isLoadingInfo.value = true
+  urlInfo.value = null
+  audioLocked.value = false
+  try {
+    const info = await api.getUrlInfo(trimmed)
+    urlInfo.value = info
+    // Auto-switch to audio if the source is audio-only
+    if (info.is_audio_only) {
+      mediaType.value = 'audio'
+      audioLocked.value = true
+    }
+  } catch {
+    // Non-critical — preview is optional
+  } finally {
+    isLoadingInfo.value = false
+  }
+}
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds) return ''
+  const m = Math.floor(seconds / 60)
+  const s = Math.floor(seconds % 60)
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 function toggleOptions(): void {
@@ -100,6 +136,14 @@ function toggleOptions(): void {
 function formatLabel(fmt: string): string {
   if (fmt === 'auto') return 'Auto'
   return fmt.toUpperCase()
+}
+
+function formatTooltip(fmt: string): string {
+  if (fmt !== 'auto') return `Convert to ${fmt.toUpperCase()}`
+  if (mediaType.value === 'audio') {
+    return 'Best quality audio in its native format (usually Opus/WebM)'
+  }
+  return 'Best quality video in its native format (usually WebM/MKV)'
 }
 </script>
 
@@ -131,9 +175,10 @@ function formatLabel(fmt: string): string {
       <div class="media-toggle">
         <button
           class="toggle-pill"
-          :class="{ active: mediaType === 'video' }"
-          @click="mediaType = 'video'"
-          :title="'Video'"
+          :class="{ active: mediaType === 'video', disabled: audioLocked }"
+          @click="!audioLocked && (mediaType = 'video')"
+          :title="audioLocked ? 'Source contains audio only' : 'Video'"
+          :disabled="audioLocked"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
           <span class="toggle-label">Video</span>
@@ -156,6 +201,35 @@ function formatLabel(fmt: string): string {
       >
         {{ store.isSubmitting ? 'Submitting…' : 'Download' }}
       </button>
+    </div>
+
+    <div v-if="isLoadingInfo" class="url-preview loading">
+      <span class="spinner"></span>
+      Checking URL…
+    </div>
+
+    <!-- URL preview: show what will be downloaded -->
+    <div v-else-if="urlInfo" class="url-preview">
+      <div class="preview-header">
+        <span v-if="urlInfo.type === 'playlist'" class="preview-badge playlist">Playlist · {{ urlInfo.count }} items</span>
+        <span v-else class="preview-badge single">Single {{ audioLocked ? 'track' : 'video' }}</span>
+        <span v-if="audioLocked" class="preview-badge audio-only">Audio only</span>
+        <span v-if="urlInfo.title" class="preview-title">{{ urlInfo.title }}</span>
+      </div>
+      <div v-if="urlInfo.type === 'playlist' && urlInfo.entries.length" class="preview-entries">
+        <div
+          v-for="(entry, i) in urlInfo.entries.slice(0, 10)"
+          :key="i"
+          class="preview-entry"
+        >
+          <span class="entry-num">{{ i + 1 }}.</span>
+          <span class="entry-title">{{ entry.title }}</span>
+          <span v-if="entry.duration" class="entry-duration">{{ formatDuration(entry.duration) }}</span>
+        </div>
+        <div v-if="urlInfo.entries.length > 10" class="preview-more">
+          …and {{ urlInfo.entries.length - 10 }} more
+        </div>
+      </div>
     </div>
 
     <div v-if="isExtracting" class="extract-loading">
@@ -183,6 +257,7 @@ function formatLabel(fmt: string): string {
               :key="fmt"
               class="format-chip"
               :class="{ active: outputFormat === fmt }"
+              :title="formatTooltip(fmt)"
               @click="outputFormat = fmt"
             >
               {{ formatLabel(fmt) }}
@@ -413,6 +488,109 @@ button:disabled {
   text-align: center;
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);
+}
+
+/* URL preview */
+.url-preview {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.url-preview.loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-text-muted);
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.preview-badge {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.preview-badge.playlist {
+  background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+  color: var(--color-accent);
+}
+
+.preview-badge.single {
+  background: color-mix(in srgb, var(--color-text-muted) 15%, transparent);
+  color: var(--color-text-muted);
+}
+
+.preview-badge.audio-only {
+  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: var(--color-warning);
+}
+
+.preview-title {
+  color: var(--color-text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-entries {
+  margin-top: var(--space-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.preview-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 2px 0;
+  color: var(--color-text-muted);
+}
+
+.entry-num {
+  min-width: 24px;
+  text-align: right;
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.entry-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-duration {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+  opacity: 0.6;
+}
+
+.preview-more {
+  padding: var(--space-xs) 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.toggle-pill.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* Narrow viewports: hide toggle labels, keep icons only */
