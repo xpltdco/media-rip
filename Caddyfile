@@ -3,5 +3,5 @@
 # Replace {$DOMAIN} with your actual domain, or set DOMAIN in your .env file.
 
 {$DOMAIN:localhost} {
-    reverse_proxy mediarip:8000
+    reverse_proxy media-rip:8000
 }
