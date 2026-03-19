@@ -79,3 +79,50 @@
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 20px rgba(0, 168, 255, 0.15);
 }
+
+/* Animated geometric background — cyberpunk only */
+:root[data-theme="cyberpunk"] body::after {
+  background:
+    /* Diagonal lines moving slowly */
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 60px,
+      rgba(0, 168, 255, 0.015) 60px,
+      rgba(0, 168, 255, 0.015) 61px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 80px,
+      rgba(255, 107, 43, 0.01) 80px,
+      rgba(255, 107, 43, 0.01) 81px
+    ),
+    /* Base grid */
+    linear-gradient(rgba(0, 168, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 168, 255, 0.025) 1px, transparent 1px);
+  background-size: 200px 200px, 240px 240px, 32px 32px, 32px 32px;
+  animation: grid-drift 60s linear infinite;
+}
+
+@keyframes grid-drift {
+  0% {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 200px 200px, -240px 240px, 32px 32px, 32px 32px;
+  }
+}
+
+/* Subtle pulsing glow dot at intersections — extra depth */
+:root[data-theme="cyberpunk"] body {
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(0, 168, 255, 0.04) 0%, transparent 70%);
+  background-size: 100% 100%;
+  animation: bg-pulse 8s ease-in-out infinite alternate;
+}
+
+@keyframes bg-pulse {
+  0% { background-size: 100% 100%; }
+  100% { background-size: 120% 120%; }
+}

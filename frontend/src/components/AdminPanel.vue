@@ -16,6 +16,8 @@ const loadingJobs = ref<Set<string>>(new Set())
 
 // Settings state
 const welcomeMessage = ref('')
+const defaultVideoFormat = ref('auto')
+const defaultAudioFormat = ref('auto')
 const settingsSaved = ref(false)
 
 function formatBytes(bytes: number): string {
@@ -34,6 +36,8 @@ async function switchTab(tab: typeof activeTab.value) {
     try {
       const config = await api.getPublicConfig()
       welcomeMessage.value = config.welcome_message
+      defaultVideoFormat.value = config.default_video_format || 'auto'
+      defaultAudioFormat.value = config.default_audio_format || 'auto'
     } catch {
       // Keep current value
     }
@@ -42,7 +46,11 @@ async function switchTab(tab: typeof activeTab.value) {
 
 async function saveSettings() {
   settingsSaved.value = false
-  const ok = await store.updateSettings({ welcome_message: welcomeMessage.value })
+  const ok = await store.updateSettings({
+    welcome_message: welcomeMessage.value,
+    default_video_format: defaultVideoFormat.value,
+    default_audio_format: defaultAudioFormat.value,
+  })
   if (ok) {
     settingsSaved.value = true
     setTimeout(() => { settingsSaved.value = false }, 3000)
@@ -204,6 +212,33 @@ function formatFilesize(bytes: number | null): string {
             placeholder="Enter a welcome message…"
           ></textarea>
         </div>
+
+        <div class="settings-field" style="margin-top: var(--space-lg);">
+          <label>Default Output Formats</label>
+          <p class="field-hint">When "Auto" is selected, files are converted to these formats instead of the native container.</p>
+          <div class="format-defaults">
+            <div class="format-default-row">
+              <span class="format-default-label">Video</span>
+              <select v-model="defaultVideoFormat" class="settings-select">
+                <option value="auto">Auto (native container)</option>
+                <option value="mp4">MP4</option>
+                <option value="webm">WebM</option>
+              </select>
+            </div>
+            <div class="format-default-row">
+              <span class="format-default-label">Audio</span>
+              <select v-model="defaultAudioFormat" class="settings-select">
+                <option value="auto">Auto (native container)</option>
+                <option value="mp3">MP3</option>
+                <option value="m4a">M4A (AAC)</option>
+                <option value="flac">FLAC</option>
+                <option value="wav">WAV</option>
+                <option value="opus">Opus</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div class="settings-actions">
           <button
             @click="saveSettings"
@@ -411,6 +446,41 @@ h3 {
   color: var(--color-success);
   font-weight: 500;
   font-size: var(--font-size-sm);
+}
+
+.format-defaults {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.format-default-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.format-default-label {
+  min-width: 50px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.settings-select {
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  min-width: 200px;
+}
+
+.settings-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
 }
 
 /* Expandable session rows */
