@@ -20,6 +20,7 @@ async function handleLogin() {
         type="text"
         placeholder="Username"
         autocomplete="username"
+        autofocus
       />
       <input
         v-model="pass"

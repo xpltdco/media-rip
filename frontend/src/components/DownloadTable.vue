@@ -291,6 +291,7 @@ async function clearJob(jobId: string): Promise<void> {
 .download-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  max-width: 100%;
 }
 
 .download-table {
@@ -514,29 +515,48 @@ async function clearJob(jobId: string): Promise<void> {
   opacity: 0;
 }
 
-/* Mobile: hide speed and ETA columns */
+/* Mobile: hide speed, ETA, and progress columns */
 @media (max-width: 639px) {
   .hide-mobile {
     display: none;
   }
 
   .col-name {
-    min-width: 120px;
-    max-width: 200px;
+    min-width: 100px;
+    max-width: none;
+  }
+
+  .col-status {
+    width: 75px;
   }
 
   .col-progress {
-    min-width: 80px;
-    width: 100px;
+    display: none;
   }
 
   .col-actions {
-    width: 80px;
+    width: auto;
   }
 
   .download-table th,
   .download-table td {
-    padding: var(--space-xs) var(--space-sm);
+    padding: var(--space-xs);
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
+  .action-group {
+    gap: 2px;
+  }
+
+  .status-badge {
+    font-size: 0.625rem;
+    padding: 1px 4px;
   }
 }
 

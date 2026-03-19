@@ -71,6 +71,7 @@ const activeTab = ref<MobileTab>('submit')
 .section-submit,
 .section-queue {
   width: 100%;
+  min-width: 0;
 }
 
 /* Mobile navigation */
