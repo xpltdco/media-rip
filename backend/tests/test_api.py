@@ -76,14 +76,12 @@ async def test_get_downloads_after_post(client):
 
 @pytest.mark.asyncio
 async def test_delete_download(client):
-    """POST a download, DELETE it — the endpoint returns cancelled status.
+    """POST a download, DELETE it — the job is fully removed from the system.
 
-    The cancel endpoint marks the job as failed in the DB, but the background
-    worker thread may overwrite this with 'downloading' or its own 'failed'
-    status depending on timing. We verify:
-    1. DELETE returns 200 with ``{"status": "cancelled"}``
-    2. The job's final state is either 'failed' (cancel won the race) or
-       another terminal state — it's no longer 'queued'.
+    DELETE now removes the job from the database and deletes its file.
+    We verify:
+    1. DELETE returns 200 with ``{"status": "deleted"}``
+    2. The job no longer appears in the downloads list
     """
     post_resp = await client.post(
         "/api/downloads",
@@ -94,17 +92,16 @@ async def test_delete_download(client):
 
     del_resp = await client.delete(f"/api/downloads/{job_id}")
     assert del_resp.status_code == 200
-    assert del_resp.json()["status"] == "cancelled"
+    assert del_resp.json()["status"] == "deleted"
 
-    # Give the background worker time to settle so the DB isn't mid-write
+    # Give the background worker time to settle
     await asyncio.sleep(0.5)
 
-    # Verify the job exists and is no longer queued
+    # Verify the job is gone
     get_resp = await client.get("/api/downloads")
     jobs = get_resp.json()
     target = [j for j in jobs if j["id"] == job_id]
-    assert len(target) == 1
-    assert target[0]["status"] != "queued"
+    assert len(target) == 0
 
 
 @pytest.mark.asyncio

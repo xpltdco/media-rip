@@ -20,8 +20,12 @@ const isLoadingInfo = ref(false)
 const audioLocked = ref(false)  // true when source is audio-only
 
 type MediaType = 'video' | 'audio'
-const mediaType = ref<MediaType>('video')
-const outputFormat = ref<string>('auto')
+const mediaType = ref<MediaType>(
+  (localStorage.getItem('mediarip:mediaType') as MediaType) || 'video'
+)
+const outputFormat = ref<string>(
+  localStorage.getItem('mediarip:outputFormat') || 'auto'
+)
 
 const audioFormats = ['auto', 'mp3', 'wav', 'm4a', 'flac', 'opus'] as const
 const videoFormats = ['auto', 'mp4', 'webm'] as const
@@ -30,9 +34,13 @@ const availableFormats = computed(() =>
   mediaType.value === 'audio' ? audioFormats : videoFormats
 )
 
-// Reset output format when switching media type
-watch(mediaType, () => {
+// Persist preferences and reset output format when switching media type
+watch(mediaType, (val) => {
+  localStorage.setItem('mediarip:mediaType', val)
   outputFormat.value = 'auto'
+})
+watch(outputFormat, (val) => {
+  localStorage.setItem('mediarip:outputFormat', val)
 })
 
 /** Whether formats have been fetched for the current URL. */
@@ -134,16 +142,18 @@ function toggleOptions(): void {
 }
 
 function formatLabel(fmt: string): string {
-  if (fmt === 'auto') return 'Auto'
+  if (fmt === 'auto') {
+    if (urlInfo.value?.default_ext) {
+      return `Auto (.${urlInfo.value.default_ext})`
+    }
+    return 'Auto'
+  }
   return fmt.toUpperCase()
 }
 
 function formatTooltip(fmt: string): string {
   if (fmt !== 'auto') return `Convert to ${fmt.toUpperCase()}`
-  if (mediaType.value === 'audio') {
-    return 'Best quality audio in its native format (usually Opus/WebM)'
-  }
-  return 'Best quality video in its native format (usually WebM/MKV)'
+  return ''
 }
 </script>
 

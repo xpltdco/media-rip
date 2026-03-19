@@ -10,6 +10,16 @@ const props = defineProps<{
 
 const store = useDownloadsStore()
 
+// Toast notification
+const toast = ref<string | null>(null)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+
+function showToast(message: string): void {
+  toast.value = message
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = null }, 2000)
+}
+
 // Sort state
 type SortKey = 'name' | 'status' | 'progress' | 'speed' | 'eta'
 const sortBy = ref<SortKey>('name')
@@ -126,9 +136,10 @@ async function copyLink(job: Job): Promise<void> {
   const url = `${window.location.origin}${downloadUrl(job)}`
   try {
     await navigator.clipboard.writeText(url)
+    showToast('Link copied to clipboard')
   } catch {
     // Fallback — clipboard API may fail in non-secure contexts
-    console.warn('[DownloadTable] Clipboard write failed')
+    showToast('Copy failed — clipboard unavailable')
   }
 }
 
@@ -267,6 +278,12 @@ async function clearJob(jobId: string): Promise<void> {
         </tr>
       </TransitionGroup>
     </table>
+    <!-- Toast notification -->
+    <Transition name="toast">
+      <div v-if="toast" class="toast-notification">
+        {{ toast }}
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -517,5 +534,40 @@ async function clearJob(jobId: string): Promise<void> {
   .download-table td {
     padding: var(--space-xs) var(--space-sm);
   }
+}
+
+/* Toast notification */
+.toast-notification {
+  position: fixed;
+  bottom: calc(var(--header-height) + var(--space-md));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.toast-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.toast-leave-active {
+  transition: all 0.15s ease-in;
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-4px);
 }
 </style>
