@@ -70,7 +70,9 @@ async def event_generator(
                         "data": json.dumps(event.model_dump()),
                     }
             except asyncio.TimeoutError:
-                yield {"event": "ping", "data": ""}
+                # No event in KEEPALIVE_TIMEOUT — loop back and wait again.
+                # sse-starlette's built-in ping handles the actual keepalive.
+                continue
     finally:
         broker.unsubscribe(session_id, queue)
         logger.info("SSE disconnected for session %s", session_id)
@@ -87,5 +89,5 @@ async def sse_events(
 
     return EventSourceResponse(
         event_generator(session_id, broker, db),
-        ping=0,  # we handle keepalive ourselves
+        ping=15,  # sse-starlette sends keepalive pings (0 = busy-loop bug)
     )

@@ -78,6 +78,20 @@ async def lifespan(app: FastAPI):
     # --- Download service ---
     download_service = DownloadService(config, db, broker, loop)
 
+    # --- Recover zombie jobs from unclean shutdown ---
+    # Jobs stuck in queued/downloading status from a previous crash will never
+    # complete — mark them as failed so they don't confuse the UI.
+    try:
+        recovered = await db.execute(
+            "UPDATE jobs SET status = 'failed', error_message = 'Interrupted by server restart' "
+            "WHERE status IN ('queued', 'downloading')"
+        )
+        await db.commit()
+        if recovered.rowcount > 0:
+            logger.warning("Recovered %d zombie job(s) from previous shutdown", recovered.rowcount)
+    except Exception as e:
+        logger.error("Failed to recover zombie jobs: %s", e)
+
     # --- Purge scheduler ---
     scheduler = None
     if config.purge.enabled:
