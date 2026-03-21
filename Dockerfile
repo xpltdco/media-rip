@@ -27,10 +27,11 @@ FROM python:3.12-slim AS runtime
 
 # Install ffmpeg (required by yt-dlp for muxing/transcoding)
 # Install deno (required by yt-dlp for YouTube JS interpretation)
+# Keep curl for Docker healthcheck probes
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ffmpeg curl unzip && \
     curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh && \
-    apt-get purge -y curl unzip && \
+    apt-get purge -y unzip && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
@@ -62,6 +63,6 @@ ENV MEDIARIP__DOWNLOADS__OUTPUT_DIR=/downloads \
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "start.py"]
