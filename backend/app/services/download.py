@@ -32,6 +32,7 @@ from app.models.job import (
     JobStatus,
     ProgressEvent,
 )
+from app.routers.cookies import get_cookie_path_for_session
 from app.services.output_template import resolve_template
 
 logger = logging.getLogger("mediarip.download")
@@ -195,6 +196,17 @@ class DownloadService:
                     "key": "FFmpegVideoRemuxer",
                     "preferedformat": "mp4",
                 }]
+
+        # Inject session cookies if uploaded
+        cookie_path = get_cookie_path_for_session(
+            self._config.server.data_dir, session_id,
+        )
+        if cookie_path:
+            opts["cookiefile"] = cookie_path
+
+        # Operator-configured extractor_args (e.g. YouTube player_client)
+        if self._config.ytdlp.extractor_args:
+            opts["extractor_args"] = self._config.ytdlp.extractor_args
 
         self._loop.run_in_executor(
             self._executor,
@@ -443,11 +455,20 @@ class DownloadService:
             logger.info("Job %s completed", job_id)
 
         except Exception as e:
+            error_msg = str(e)
+            # Enhance 403 errors with actionable guidance
+            if "403" in error_msg:
+                error_msg = (
+                    f"{error_msg}\n\n"
+                    "This usually means the site is blocking the download request. "
+                    "Try uploading a cookies.txt file (Account menu → Upload cookies) "
+                    "from a logged-in browser session."
+                )
             logger.error("Job %s failed: %s", job_id, e, exc_info=True)
             try:
                 asyncio.run_coroutine_threadsafe(
                     update_job_status(
-                        self._db, job_id, JobStatus.failed.value, str(e)
+                        self._db, job_id, JobStatus.failed.value, error_msg
                     ),
                     self._loop,
                 ).result(timeout=10)
@@ -455,7 +476,7 @@ class DownloadService:
                     "event": "job_update",
                     "data": {"job_id": job_id, "status": "failed", "percent": 0,
                              "speed": None, "eta": None, "filename": None,
-                             "error_message": str(e)},
+                             "error_message": error_msg},
                 })
                 # Log to error_log table for admin visibility
                 from app.core.database import log_download_error
@@ -463,7 +484,7 @@ class DownloadService:
                     log_download_error(
                         self._db,
                         url=url,
-                        error=str(e),
+                        error=error_msg,
                         session_id=session_id,
                         format_id=opts.get("format"),
                         media_type=opts.get("_media_type"),
@@ -478,11 +499,13 @@ class DownloadService:
 
     def _extract_info(self, url: str) -> dict | None:
         """Run yt-dlp extract_info synchronously (called from thread pool)."""
-        opts = {
+        opts: dict = {
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
         }
+        if self._config.ytdlp.extractor_args:
+            opts["extractor_args"] = self._config.ytdlp.extractor_args
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
@@ -492,13 +515,15 @@ class DownloadService:
 
     def _extract_url_info(self, url: str) -> dict | None:
         """Extract URL metadata including playlist detection."""
-        opts = {
+        opts: dict = {
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
             "extract_flat": "in_playlist",
             "noplaylist": False,
         }
+        if self._config.ytdlp.extractor_args:
+            opts["extractor_args"] = self._config.ytdlp.extractor_args
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
