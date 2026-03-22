@@ -35,6 +35,9 @@ ADMIN_WRITABLE_KEYS = {
     "purge_enabled",
     "purge_max_age_minutes",
     "api_key",
+    "theme_dark",
+    "theme_light",
+    "theme_default_mode",
 }
 
 
@@ -113,6 +116,12 @@ def apply_persisted_to_config(config, settings: dict) -> None:
         config.purge.privacy_retention_minutes = settings["privacy_retention_minutes"]
     if "api_key" in settings:
         config.server.api_key = settings["api_key"]
+    if "theme_dark" in settings:
+        config.ui.theme_dark = settings["theme_dark"]
+    if "theme_light" in settings:
+        config.ui.theme_light = settings["theme_light"]
+    if "theme_default_mode" in settings:
+        config.ui.theme_default_mode = settings["theme_default_mode"]
 
     logger.info("Applied %d persisted settings to config", len(settings))
 

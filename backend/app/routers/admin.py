@@ -295,6 +295,9 @@ async def get_settings(
         "admin_username": config.admin.username,
         "purge_enabled": config.purge.enabled,
         "purge_max_age_minutes": config.purge.max_age_minutes,
+        "theme_dark": config.ui.theme_dark,
+        "theme_light": config.ui.theme_light,
+        "theme_default_mode": config.ui.theme_default_mode,
     }
 
 
@@ -417,6 +420,31 @@ async def update_settings(
             config.purge.max_age_minutes = val
             to_persist["purge_max_age_minutes"] = val
             updated.append("purge_max_age_minutes")
+
+    # Theme settings
+    valid_dark = {"cyberpunk", "dark", "midnight", "hacker", "neon"}
+    valid_light = {"light", "paper", "arctic", "solarized"}
+
+    if "theme_dark" in body:
+        val = body["theme_dark"]
+        if val in valid_dark:
+            config.ui.theme_dark = val
+            to_persist["theme_dark"] = val
+            updated.append("theme_dark")
+
+    if "theme_light" in body:
+        val = body["theme_light"]
+        if val in valid_light:
+            config.ui.theme_light = val
+            to_persist["theme_light"] = val
+            updated.append("theme_light")
+
+    if "theme_default_mode" in body:
+        val = body["theme_default_mode"]
+        if val in ("dark", "light"):
+            config.ui.theme_default_mode = val
+            to_persist["theme_default_mode"] = val
+            updated.append("theme_default_mode")
 
     # --- Persist to DB ---
     if to_persist:
