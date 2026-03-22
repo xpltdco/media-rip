@@ -70,8 +70,9 @@ async def event_generator(
                         "data": json.dumps(event.model_dump()),
                     }
             except asyncio.TimeoutError:
-                # No event in KEEPALIVE_TIMEOUT — loop back and wait again.
-                # sse-starlette's built-in ping handles the actual keepalive.
+                # Yield an explicit ping so SSE clients see stream liveness
+                # (in addition to sse-starlette's built-in TCP keepalive).
+                yield {"event": "ping", "data": ""}
                 continue
     finally:
         broker.unsubscribe(session_id, queue)

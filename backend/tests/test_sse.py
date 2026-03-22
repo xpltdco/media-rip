@@ -37,10 +37,14 @@ def _make_job(session_id: str, *, status: str = "queued", **overrides) -> Job:
 async def _collect_events(gen, *, count: int = 1, timeout: float = 5.0):
     """Consume *count* events from an async generator with a safety timeout."""
     events = []
-    async for event in gen:
-        events.append(event)
-        if len(events) >= count:
-            break
+
+    async def _drain():
+        async for event in gen:
+            events.append(event)
+            if len(events) >= count:
+                break
+
+    await asyncio.wait_for(_drain(), timeout=timeout)
     return events
 
 
