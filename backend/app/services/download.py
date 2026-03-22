@@ -71,6 +71,8 @@ class DownloadService:
         )
         # Per-job throttle state for DB writes (only used inside worker threads)
         self._last_db_percent: dict[str, float] = {}
+        # Stash extraction errors for logging in async context
+        self._last_extract_error: str = ""
 
     def _base_opts(self) -> dict:
         """Return yt-dlp options common to all invocations."""
@@ -526,8 +528,10 @@ class DownloadService:
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
-        except Exception:
-            logger.exception("URL info extraction failed for %s", url)
+        except Exception as e:
+            logger.warning("URL info extraction failed for %s: %s", url, e)
+            # Stash the error message for get_url_info to log
+            self._last_extract_error = str(e)
             return None
 
     def _is_audio_only_source(self, url: str) -> bool:
@@ -579,6 +583,15 @@ class DownloadService:
             url,
         )
         if not info:
+            # Log extraction failure for admin visibility
+            extract_err = getattr(self, "_last_extract_error", "")
+            from app.core.database import log_download_error
+            await log_download_error(
+                self._db,
+                url=url,
+                error=extract_err or "URL extraction failed — no media found",
+            )
+            self._last_extract_error = ""
             # Provide site-specific hints for known auth-required platforms
             hint = self._get_auth_hint(url)
             return {
