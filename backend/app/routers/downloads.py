@@ -27,37 +27,32 @@ router = APIRouter(tags=["downloads"])
 def _check_api_access(request: Request) -> None:
     """Verify the caller is a browser user or has a valid API key.
 
-    When no API key is configured, all requests are allowed (open access).
-    When an API key is set:
-      - Requests with a valid X-API-Key header pass.
-      - Requests from the web UI pass (have a Referer from the same origin
-        or an X-Requested-With header set by the frontend).
-      - All other requests are rejected with 403.
+    Browser users (X-Requested-With: XMLHttpRequest) always pass.
+    Non-browser callers must provide a valid X-API-Key header.
+    If no API key is configured, non-browser requests are blocked entirely.
     """
+    # Browser users always pass
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return
+
     config = request.app.state.config
     api_key = config.server.api_key
 
     if not api_key:
-        return  # No key configured — open access
+        # No key configured — block non-browser access
+        raise_api_key_required("API access is disabled. Generate an API key in the admin panel, then provide it via X-API-Key header.")
 
     # Check API key header
     provided_key = request.headers.get("x-api-key", "")
     if provided_key and secrets.compare_digest(provided_key, api_key):
         return
 
-    # Check browser origin — frontend sends X-Requested-With: XMLHttpRequest
-    if request.headers.get("x-requested-with") == "XMLHttpRequest":
-        return
-
     raise_api_key_required()
 
 
-def raise_api_key_required():
+def raise_api_key_required(detail: str = "Invalid or missing API key. Provide X-API-Key header."):
     from fastapi import HTTPException
-    raise HTTPException(
-        status_code=403,
-        detail="API key required. Provide X-API-Key header or use the web UI.",
-    )
+    raise HTTPException(status_code=403, detail=detail)
 
 
 @router.post("/downloads", response_model=Job, status_code=201)
