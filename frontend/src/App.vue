@@ -13,8 +13,11 @@ const themeStore = useThemeStore()
 const { connect } = useSSE()
 
 onMounted(async () => {
+  // Apply theme from cookie immediately to prevent flash-of-wrong-theme
   themeStore.init()
+  // Then load server config and re-apply with admin defaults
   await configStore.loadConfig()
+  themeStore.init()
   await themeStore.loadCustomThemes()
   await downloadsStore.fetchJobs()
   connect()
