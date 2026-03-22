@@ -31,9 +31,6 @@ services:
       #
       ## Pre-set admin password (skip first-run wizard):
       # - MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...
-      #
-      ## YouTube tuning — change player client if downloads fail:
-      # - MEDIARIP__YTDLP__EXTRACTOR_ARGS={"youtube":{"player_client":["web_safari"]}}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]

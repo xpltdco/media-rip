@@ -54,7 +54,6 @@ These are the knobs most operators actually touch — all shown commented out in
 | `MEDIARIP__DOWNLOADS__MAX_CONCURRENT` | `3` | Increase for faster connections, decrease on low-spec hardware |
 | `MEDIARIP__PURGE__MAX_AGE_MINUTES` | `1440` | Raise for longer retention, or set `PURGE__ENABLED=false` to keep forever |
 | `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Pre-set to skip the first-run wizard (useful for automated deployments) |
-| `MEDIARIP__YTDLP__EXTRACTOR_ARGS` | `{}` | Tune YouTube player client if downloads 403 (see [yt-dlp Tuning](#yt-dlp-tuning)) |
 
 ### All Settings
 
@@ -127,24 +126,17 @@ docker run --rm python:3.12-slim python -c \
 # MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...your.hash...
 ```
 
-### yt-dlp Tuning
+### Troubleshooting: YouTube 403 Errors
 
-If YouTube downloads fail with HTTP 403, try changing the player client:
+YouTube downloads work out of the box — yt-dlp automatically selects the right player clients. If you do hit HTTP 403 errors, it's usually one of:
+
+1. **VPN/datacenter IP** — YouTube blocks many VPN exit IPs. Run the container on your direct internet connection instead.
+2. **Private/age-restricted content** — Upload a `cookies.txt` from a logged-in browser session via the UI.
+3. **YouTube-side changes** — As a last resort, you can override yt-dlp's player client selection:
 
 ```bash
-# Environment variable
 MEDIARIP__YTDLP__EXTRACTOR_ARGS='{"youtube": {"player_client": ["web_safari"]}}'
 ```
-
-```yaml
-# Or in config.yaml
-ytdlp:
-  extractor_args:
-    youtube:
-      player_client: ["web_safari", "android_vr"]
-```
-
-You can also upload a `cookies.txt` from a logged-in browser session via the UI for authenticated downloads.
 
 ## Custom Themes
 
