@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import { useConfigStore } from '@/stores/config'
+import { useThemeStore } from '@/stores/theme'
 import { api } from '@/api/client'
 import AdminLogin from './AdminLogin.vue'
 import AdminSetup from './AdminSetup.vue'
@@ -34,6 +35,11 @@ const sessionTimeoutHours = ref(72)
 const adminUsername = ref('admin')
 const purgeEnabled = ref(true)
 const purgeMaxAgeMinutes = ref(1440)
+
+// Theme settings
+const themeDark = ref('cyberpunk')
+const themeLight = ref('light')
+const themeDefaultMode = ref('dark')
 
 // Change password state
 const currentPassword = ref('')
@@ -89,6 +95,9 @@ async function switchTab(tab: typeof activeTab.value) {
         adminUsername.value = data.admin_username ?? 'admin'
         purgeEnabled.value = data.purge_enabled ?? false
         purgeMaxAgeMinutes.value = data.purge_max_age_minutes ?? 1440
+        themeDark.value = data.theme_dark ?? 'cyberpunk'
+        themeLight.value = data.theme_light ?? 'light'
+        themeDefaultMode.value = data.theme_default_mode ?? 'dark'
       }
     } catch {
       // Keep current values
@@ -111,9 +120,15 @@ async function saveAllSettings() {
     admin_username: adminUsername.value,
     purge_enabled: purgeEnabled.value,
     purge_max_age_minutes: purgeMaxAgeMinutes.value,
+    theme_dark: themeDark.value,
+    theme_light: themeLight.value,
+    theme_default_mode: themeDefaultMode.value,
   })
   if (ok) {
     await configStore.loadConfig()
+    // Update theme store with new admin config
+    const themeStore = useThemeStore()
+    themeStore.updateAdminConfig(themeDark.value, themeLight.value, themeDefaultMode.value as 'dark' | 'light')
     settingsSaved.value = true
     setTimeout(() => { settingsSaved.value = false }, 3000)
   }
@@ -418,6 +433,39 @@ function formatFilesize(bytes: number | null): string {
               class="settings-textarea"
               placeholder="Enter a welcome message…"
             ></textarea>
+          </div>
+
+          <div class="settings-field">
+            <label>Theme</label>
+            <p class="field-hint">Set the default appearance for visitors. Users can toggle dark/light mode via the header icon.</p>
+            <div class="theme-settings">
+              <div class="theme-setting-row">
+                <span class="theme-setting-label">Default Mode</span>
+                <select v-model="themeDefaultMode" class="settings-select">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </div>
+              <div class="theme-setting-row">
+                <span class="theme-setting-label">Dark Theme</span>
+                <select v-model="themeDark" class="settings-select">
+                  <option value="cyberpunk">Cyberpunk</option>
+                  <option value="dark">Dark</option>
+                  <option value="midnight">Midnight</option>
+                  <option value="hacker">Hacker</option>
+                  <option value="neon">Neon</option>
+                </select>
+              </div>
+              <div class="theme-setting-row">
+                <span class="theme-setting-label">Light Theme</span>
+                <select v-model="themeLight" class="settings-select">
+                  <option value="light">Light</option>
+                  <option value="paper">Paper</option>
+                  <option value="arctic">Arctic</option>
+                  <option value="solarized">Solarized</option>
+                </select>
+              </div>
+            </div>
           </div>
 
           <div class="settings-field">
@@ -920,6 +968,25 @@ h3 {
   flex-direction: column;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
+}
+
+.theme-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.theme-setting-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.theme-setting-label {
+  min-width: 100px;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .format-default-row {

@@ -22,6 +22,9 @@ async def public_config(request: Request) -> dict:
     return {
         "session_mode": config.session.mode,
         "default_theme": config.ui.default_theme,
+        "theme_dark": config.ui.theme_dark,
+        "theme_light": config.ui.theme_light,
+        "theme_default_mode": config.ui.theme_default_mode,
         "welcome_message": config.ui.welcome_message,
         "purge_enabled": config.purge.enabled,
         "max_concurrent_downloads": config.downloads.max_concurrent,

@@ -1,21 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useThemeStore } from '@/stores/theme'
+import { useConfigStore } from '@/stores/config'
 
-// Mock localStorage
-const localStorageMock = (() => {
-  let store: Record<string, string> = {}
-  return {
-    getItem: vi.fn((key: string) => store[key] || null),
-    setItem: vi.fn((key: string, value: string) => { store[key] = value }),
-    removeItem: vi.fn((key: string) => { delete store[key] }),
-    clear: vi.fn(() => { store = {} }),
-  }
-})()
-
-Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock })
-
-// Mock document.documentElement.setAttribute
+// Mock document
 const setAttributeMock = vi.fn()
 Object.defineProperty(globalThis, 'document', {
   value: {
@@ -25,44 +13,47 @@ Object.defineProperty(globalThis, 'document', {
     getElementById: vi.fn(() => null),
     createElement: vi.fn(() => ({ id: '', textContent: '' })),
     head: { appendChild: vi.fn() },
+    cookie: '',
   },
 })
 
 describe('theme store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
-    localStorageMock.clear()
     setAttributeMock.mockClear()
+    document.cookie = ''
   })
 
-  it('initializes with cyberpunk as default', () => {
+  it('initializes with cyberpunk as default (dark mode)', () => {
     const store = useThemeStore()
     store.init()
     expect(store.currentTheme).toBe('cyberpunk')
+    expect(store.currentMode).toBe('dark')
+    expect(store.isDark).toBe(true)
     expect(setAttributeMock).toHaveBeenCalledWith('data-theme', 'cyberpunk')
   })
 
-  it('restores saved theme from localStorage', () => {
-    localStorageMock.setItem('mrip-theme', 'dark')
+  it('uses admin config for defaults when available', () => {
+    const configStore = useConfigStore()
+    configStore.config = {
+      theme_dark: 'neon',
+      theme_light: 'paper',
+      theme_default_mode: 'light',
+    } as any
+
     const store = useThemeStore()
     store.init()
-    expect(store.currentTheme).toBe('dark')
-    expect(setAttributeMock).toHaveBeenCalledWith('data-theme', 'dark')
+    expect(store.currentTheme).toBe('paper')
+    expect(store.currentMode).toBe('light')
+    expect(store.isDark).toBe(false)
   })
 
-  it('falls back to cyberpunk for invalid saved theme', () => {
-    localStorageMock.setItem('mrip-theme', 'nonexistent')
-    const store = useThemeStore()
-    store.init()
-    expect(store.currentTheme).toBe('cyberpunk')
-  })
-
-  it('setTheme updates state, localStorage, and DOM', () => {
+  it('setTheme updates state and applies to DOM', () => {
     const store = useThemeStore()
     store.init()
     store.setTheme('light')
     expect(store.currentTheme).toBe('light')
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('mrip-theme', 'light')
+    expect(store.currentMode).toBe('light')
     expect(setAttributeMock).toHaveBeenCalledWith('data-theme', 'light')
   })
 
@@ -87,6 +78,12 @@ describe('theme store', () => {
     expect(store.allThemes.every(t => t.builtin)).toBe(true)
   })
 
+  it('darkThemes has 5, lightThemes has 4', () => {
+    const store = useThemeStore()
+    expect(store.darkThemes).toHaveLength(5)
+    expect(store.lightThemes).toHaveLength(4)
+  })
+
   it('currentMeta returns metadata for active theme', () => {
     const store = useThemeStore()
     store.init()
@@ -94,48 +91,50 @@ describe('theme store', () => {
     expect(store.currentMeta?.name).toBe('Cyberpunk')
   })
 
-  it('isDark is true for cyberpunk and dark themes', () => {
+  it('isDark reflects current mode', () => {
     const store = useThemeStore()
     store.init()
     expect(store.isDark).toBe(true)
-
-    store.setTheme('dark')
-    expect(store.isDark).toBe(true)
-  })
-
-  it('isDark is false for light theme', () => {
-    const store = useThemeStore()
-    store.init()
     store.setTheme('light')
     expect(store.isDark).toBe(false)
+    store.setTheme('hacker')
+    expect(store.isDark).toBe(true)
   })
 
-  it('toggleDarkMode switches from dark to light', () => {
+  it('toggleDarkMode switches between admin dark and light themes', () => {
     const store = useThemeStore()
-    store.init() // starts on cyberpunk (dark)
+    store.init() // cyberpunk (dark)
     store.toggleDarkMode()
     expect(store.currentTheme).toBe('light')
     expect(store.isDark).toBe(false)
-  })
-
-  it('toggleDarkMode switches from light back to last dark theme', () => {
-    const store = useThemeStore()
-    store.init()
-    // Start on cyberpunk, toggle to light, toggle back
-    store.toggleDarkMode()
-    expect(store.currentTheme).toBe('light')
     store.toggleDarkMode()
     expect(store.currentTheme).toBe('cyberpunk')
     expect(store.isDark).toBe(true)
   })
 
-  it('toggleDarkMode remembers dark theme when starting from dark', () => {
+  it('toggleDarkMode uses admin-configured themes', () => {
+    const configStore = useConfigStore()
+    configStore.config = {
+      theme_dark: 'neon',
+      theme_light: 'arctic',
+      theme_default_mode: 'dark',
+    } as any
+
     const store = useThemeStore()
     store.init()
-    store.setTheme('dark') // switch to the "dark" theme (not cyberpunk)
+    expect(store.currentTheme).toBe('neon')
     store.toggleDarkMode()
-    expect(store.currentTheme).toBe('light')
+    expect(store.currentTheme).toBe('arctic')
     store.toggleDarkMode()
-    expect(store.currentTheme).toBe('dark') // returns to dark, not cyberpunk
+    expect(store.currentTheme).toBe('neon')
+  })
+
+  it('updateAdminConfig changes the theme pair', () => {
+    const store = useThemeStore()
+    store.init()
+    store.updateAdminConfig('midnight', 'solarized', 'light')
+    expect(store.adminDarkTheme).toBe('midnight')
+    expect(store.adminLightTheme).toBe('solarized')
+    expect(store.adminDefaultMode).toBe('light')
   })
 })

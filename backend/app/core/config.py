@@ -91,6 +91,9 @@ class UIConfig(BaseModel):
 
     default_theme: str = "dark"
     welcome_message: str = "Paste any video or audio URL. We rip it, you download it. No accounts, no tracking."
+    theme_dark: str = "cyberpunk"     # Which dark theme to use
+    theme_light: str = "light"        # Which light theme to use
+    theme_default_mode: str = "dark"  # Start in "dark" or "light" mode
 
 
 class AdminConfig(BaseModel):
