@@ -49,6 +49,17 @@ async def lifespan(app: FastAPI):
         config = AppConfig()
         logger.info("Config loaded from defaults + env vars (no YAML file)")
 
+    # --- Derive password hash from plaintext if provided ---
+    if config.admin.password and not config.admin.password_hash:
+        import bcrypt
+        config.admin.password_hash = bcrypt.hashpw(
+            config.admin.password.encode("utf-8"),
+            bcrypt.gensalt(),
+        ).decode("utf-8")
+        logger.info("Admin password hashed from plaintext config")
+    # Clear plaintext from memory — only the hash is needed at runtime
+    config.admin.password = ""
+
     # --- TLS warning ---
     if config.admin.enabled and config.admin.password_hash:
         logger.warning(

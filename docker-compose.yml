@@ -30,7 +30,7 @@ services:
       # - MEDIARIP__PURGE__MAX_AGE_MINUTES=1440
       #
       ## Pre-set admin password (skip first-run wizard):
-      # - MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...
+      # - MEDIARIP__ADMIN__PASSWORD=changeme
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]

@@ -53,7 +53,7 @@ These are the knobs most operators actually touch — all shown commented out in
 | `MEDIARIP__SESSION__MODE` | `isolated` | Set to `shared` for family/team use, `open` to disable sessions entirely |
 | `MEDIARIP__DOWNLOADS__MAX_CONCURRENT` | `3` | Increase for faster connections, decrease on low-spec hardware |
 | `MEDIARIP__PURGE__MAX_AGE_MINUTES` | `1440` | Raise for longer retention, or set `PURGE__ENABLED=false` to keep forever |
-| `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Pre-set to skip the first-run wizard (useful for automated deployments) |
+| `MEDIARIP__ADMIN__PASSWORD` | _(empty)_ | Pre-set to skip the first-run wizard (useful for automated deployments) |
 
 ### All Settings
 
@@ -76,7 +76,8 @@ These are the knobs most operators actually touch — all shown commented out in
 |----------|---------|-------------|
 | `MEDIARIP__ADMIN__ENABLED` | `true` | Enable admin panel |
 | `MEDIARIP__ADMIN__USERNAME` | `admin` | Admin username |
-| `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Bcrypt hash of admin password |
+| `MEDIARIP__ADMIN__PASSWORD` | _(empty)_ | Admin password (plaintext — hashed on startup, never stored) |
+| `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Bcrypt hash (alternative to plaintext — for advanced users) |
 
 #### Purge
 
@@ -115,16 +116,20 @@ These are the knobs most operators actually touch — all shown commented out in
 
 Enabled by default. On first run, you'll be prompted to set a password in the browser.
 
-To pre-configure for automated deployments (skip the wizard):
+To pre-configure for automated deployments (skip the wizard), set the password via environment variable or `.env` file:
+
+```yaml
+# docker-compose.yml
+environment:
+  - MEDIARIP__ADMIN__PASSWORD=your-password-here
+```
 
 ```bash
-# Generate a bcrypt hash
-docker run --rm python:3.12-slim python -c \
-  "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
-
-# Then set in docker-compose.yml:
-# MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...your.hash...
+# Or in .env file
+MEDIARIP__ADMIN__PASSWORD=your-password-here
 ```
+
+The plaintext password is hashed on startup and cleared from memory — it's never stored or logged.
 
 ### Troubleshooting: YouTube 403 Errors
 
