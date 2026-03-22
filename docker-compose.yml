@@ -21,16 +21,17 @@ services:
       # - ./config.yaml:/app/config.yaml:ro  # YAML config file
     environment:
       - MEDIARIP__SESSION__MODE=isolated
-      # Admin panel (disabled by default):
-      # - MEDIARIP__ADMIN__ENABLED=true
-      # - MEDIARIP__ADMIN__USERNAME=admin
+      # Admin panel (enabled by default — set password on first run in browser):
       # - MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...your.bcrypt.hash...
-      # Auto-purge (disabled by default):
-      # - MEDIARIP__PURGE__ENABLED=true
-      # - MEDIARIP__PURGE__MAX_AGE_HOURS=168
+      #
+      # Auto-purge (enabled by default — 24h retention):
+      # - MEDIARIP__PURGE__MAX_AGE_MINUTES=1440
+      #
+      # yt-dlp tuning (optional):
+      # - MEDIARIP__YTDLP__EXTRACTOR_ARGS={"youtube": {"player_client": ["web_safari"]}}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3

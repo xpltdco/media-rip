@@ -28,13 +28,10 @@ services:
       MEDIARIP__ADMIN__PASSWORD_HASH: "${ADMIN_PASSWORD_HASH}"
       # Session mode: isolated (default), shared, or open
       MEDIARIP__SESSION__MODE: "${SESSION_MODE:-isolated}"
-      # Auto-purge (optional)
-      # MEDIARIP__PURGE__ENABLED: "true"
-      # MEDIARIP__PURGE__MAX_AGE_HOURS: "168"
     expose:
       - "8000"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3

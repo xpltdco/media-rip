@@ -42,24 +42,66 @@ Downloads are saved to `./downloads/`.
 
 ## Configuration
 
-All settings have sensible defaults. Override via environment variables or `config.yaml`:
+All settings have sensible defaults — zero config required. Override via environment variables or mount a `config.yaml`:
+
+### Core Settings
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MEDIARIP__SERVER__PORT` | `8000` | Internal server port |
-| `MEDIARIP__SERVER__DB_PATH` | `/data/mediarip.db` | SQLite database path |
-| `MEDIARIP__SERVER__DATA_DIR` | `/data` | Persistent data directory |
-| `MEDIARIP__DOWNLOADS__OUTPUT_DIR` | `/downloads` | Where files are saved |
+| `MEDIARIP__SERVER__LOG_LEVEL` | `info` | Log level (`debug`, `info`, `warning`, `error`) |
 | `MEDIARIP__DOWNLOADS__MAX_CONCURRENT` | `3` | Maximum parallel downloads |
 | `MEDIARIP__SESSION__MODE` | `isolated` | `isolated`, `shared`, or `open` |
-| `MEDIARIP__SESSION__TIMEOUT_HOURS` | `72` | Session cookie lifetime |
-| `MEDIARIP__ADMIN__ENABLED` | `false` | Enable admin panel |
+| `MEDIARIP__SESSION__TIMEOUT_HOURS` | `72` | Session cookie lifetime (hours) |
+
+### Admin Panel
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEDIARIP__ADMIN__ENABLED` | `true` | Enable admin panel |
 | `MEDIARIP__ADMIN__USERNAME` | `admin` | Admin username |
 | `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Bcrypt hash of admin password |
-| `MEDIARIP__PURGE__ENABLED` | `false` | Enable auto-purge of old downloads |
-| `MEDIARIP__PURGE__MAX_AGE_HOURS` | `168` | Delete downloads older than this |
-| `MEDIARIP__PURGE__CRON` | `0 3 * * *` | Purge schedule (cron syntax) |
-| `MEDIARIP__THEMES_DIR` | `/themes` | Custom themes directory |
+
+### Auto-Purge
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEDIARIP__PURGE__ENABLED` | `true` | Enable automatic cleanup of old downloads |
+| `MEDIARIP__PURGE__MAX_AGE_MINUTES` | `1440` | Delete completed downloads older than this (minutes) |
+| `MEDIARIP__PURGE__CRON` | `* * * * *` | Purge check schedule (cron syntax) |
+| `MEDIARIP__PURGE__PRIVACY_MODE` | `false` | Aggressive cleanup — removes downloads + logs on schedule |
+| `MEDIARIP__PURGE__PRIVACY_RETENTION_MINUTES` | `1440` | Retention period when privacy mode is enabled |
+
+### UI Customization
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEDIARIP__UI__DEFAULT_THEME` | `dark` | Default theme (`dark`, `light`, `cyberpunk`, or custom) |
+| `MEDIARIP__UI__WELCOME_MESSAGE` | _(built-in)_ | Header subtitle text shown to users |
+
+### yt-dlp Tuning
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MEDIARIP__YTDLP__EXTRACTOR_ARGS` | `{}` | JSON object of yt-dlp extractor args (see below) |
+
+Use `extractor_args` to tune YouTube player client selection or pass arguments to any yt-dlp extractor:
+
+```yaml
+# config.yaml
+ytdlp:
+  extractor_args:
+    youtube:
+      player_client: ["web_safari", "android_vr"]
+```
+
+Or via environment variable:
+
+```bash
+MEDIARIP__YTDLP__EXTRACTOR_ARGS='{"youtube": {"player_client": ["web_safari"]}}'
+```
+
+> **Note:** Internal paths (`SERVER__DB_PATH`, `SERVER__DATA_DIR`, `DOWNLOADS__OUTPUT_DIR`) are pre-configured in the Docker image. Only override these if you change the volume mount points.
 
 ### Session Modes
 
@@ -69,7 +111,7 @@ All settings have sensible defaults. Override via environment variables or `conf
 
 ### Admin Panel
 
-Enable the admin panel to manage sessions, view storage, trigger manual purge, and review error logs:
+The admin panel is enabled by default. On first run, you'll be prompted to set a password in the browser. Or pre-configure via environment:
 
 ```yaml
 # docker-compose.yml environment section
