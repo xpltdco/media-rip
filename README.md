@@ -11,7 +11,7 @@ A self-hostable yt-dlp web frontend. Paste a URL, pick quality, download — wit
 - **Real-time progress** — Server-Sent Events stream download progress to the browser instantly.
 - **Session isolation** — Each browser gets its own download queue. No cross-talk.
 - **Playlist support** — Collapsible parent/child jobs with per-video status tracking.
-- **Three built-in themes** — Cyberpunk (default), Dark, Light. Switch in the header.
+- **9 built-in themes** — 5 dark (Cyberpunk, Dark, Midnight, Hacker, Neon) + 4 light (Light, Paper, Arctic, Solarized). Admin picks the pair, visitors toggle dark/light.
 - **Custom themes** — Drop a CSS file into `/themes` volume. No rebuild needed.
 - **Admin panel** — Session management, storage info, manual purge, error logs. Protected by bcrypt auth.
 - **Cookie auth** — Upload cookies.txt per session for paywalled/private content.
@@ -21,8 +21,32 @@ A self-hostable yt-dlp web frontend. Paste a URL, pick quality, download — wit
 
 ## Quickstart
 
+The Docker image is published to GitHub Container Registry:
+
+```
+ghcr.io/xpltdco/media-rip:latest
+```
+
+Pull and run with Docker Compose (recommended):
+
 ```bash
-docker compose up
+# Download the compose file
+curl -O https://raw.githubusercontent.com/xpltdco/media-rip/master/docker-compose.yml
+
+# Start the container
+docker compose up -d
+```
+
+Or pull and run directly:
+
+```bash
+docker run -d \
+  --name mediarip \
+  -p 8080:8000 \
+  -v ./downloads:/downloads \
+  -v mediarip-data:/data \
+  --restart unless-stopped \
+  ghcr.io/xpltdco/media-rip:latest
 ```
 
 Open [http://localhost:8080](http://localhost:8080) and paste a URL. On first run, you'll set an admin password.
