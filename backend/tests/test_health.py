@@ -63,11 +63,11 @@ class TestHealthEndpoint:
         assert isinstance(data["queue_depth"], int) and data["queue_depth"] >= 0
 
     @pytest.mark.anyio
-    async def test_health_version_is_semver(self, client):
+    async def test_health_version_format(self, client):
         resp = await client.get("/api/health")
         version = resp.json()["version"]
-        parts = version.split(".")
-        assert len(parts) == 3, f"Expected semver, got {version}"
+        # In Docker: semver (e.g. "1.1.4"). Locally: "dev".
+        assert version == "dev" or len(version.split(".")) == 3, f"Unexpected version: {version}"
 
     @pytest.mark.anyio
     async def test_health_queue_depth_reflects_active_jobs(self, db):
