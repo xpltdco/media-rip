@@ -74,12 +74,21 @@ async def run_purge(
 
         # Delete file from disk if it exists
         if filename:
-            file_path = output_dir / Path(filename).name
+            file_path = output_dir / filename
             if file_path.is_file():
                 try:
                     file_path.unlink()
                     files_deleted += 1
                     logger.debug("Purge: deleted file %s (job %s)", file_path, job_id)
+                    # Clean up empty parent directories up to output_dir
+                    parent = file_path.parent
+                    while parent != output_dir:
+                        try:
+                            parent.rmdir()  # only removes if empty
+                            logger.debug("Purge: removed empty dir %s", parent)
+                            parent = parent.parent
+                        except OSError:
+                            break
                 except OSError as e:
                     logger.warning("Purge: failed to delete %s: %s", file_path, e)
             else:
