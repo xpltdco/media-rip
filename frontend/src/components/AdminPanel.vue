@@ -23,7 +23,7 @@ const defaultVideoFormat = ref('auto')
 const defaultAudioFormat = ref('auto')
 const settingsSaved = ref(false)
 const privacyMode = ref(false)
-const privacyRetentionHours = ref(24)
+const privacyRetentionMinutes = ref(1440)
 const purgeConfirming = ref(false)
 let purgeConfirmTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -32,8 +32,8 @@ const maxConcurrent = ref(3)
 const sessionMode = ref('isolated')
 const sessionTimeoutHours = ref(72)
 const adminUsername = ref('admin')
-const purgeEnabled = ref(false)
-const purgeMaxAgeHours = ref(168)
+const purgeEnabled = ref(true)
+const purgeMaxAgeMinutes = ref(1440)
 
 // Change password state
 const currentPassword = ref('')
@@ -73,13 +73,13 @@ async function switchTab(tab: typeof activeTab.value) {
         defaultVideoFormat.value = data.default_video_format || 'auto'
         defaultAudioFormat.value = data.default_audio_format || 'auto'
         privacyMode.value = data.privacy_mode ?? false
-        privacyRetentionHours.value = data.privacy_retention_hours ?? 24
+        privacyRetentionMinutes.value = data.privacy_retention_minutes ?? 1440
         maxConcurrent.value = data.max_concurrent ?? 3
         sessionMode.value = data.session_mode ?? 'isolated'
         sessionTimeoutHours.value = data.session_timeout_hours ?? 72
         adminUsername.value = data.admin_username ?? 'admin'
         purgeEnabled.value = data.purge_enabled ?? false
-        purgeMaxAgeHours.value = data.purge_max_age_hours ?? 168
+        purgeMaxAgeMinutes.value = data.purge_max_age_minutes ?? 1440
       }
     } catch {
       // Keep current values
@@ -94,13 +94,13 @@ async function saveAllSettings() {
     default_video_format: defaultVideoFormat.value,
     default_audio_format: defaultAudioFormat.value,
     privacy_mode: privacyMode.value,
-    privacy_retention_hours: privacyRetentionHours.value,
+    privacy_retention_minutes: privacyRetentionMinutes.value,
     max_concurrent: maxConcurrent.value,
     session_mode: sessionMode.value,
     session_timeout_hours: sessionTimeoutHours.value,
     admin_username: adminUsername.value,
     purge_enabled: purgeEnabled.value,
-    purge_max_age_hours: purgeMaxAgeHours.value,
+    purge_max_age_minutes: purgeMaxAgeMinutes.value,
   })
   if (ok) {
     await configStore.loadConfig()
@@ -384,15 +384,15 @@ function formatFilesize(bytes: number | null): string {
               <div class="retention-input-row">
                 <input
                   type="number"
-                  v-model.number="privacyRetentionHours"
+                  v-model.number="privacyRetentionMinutes"
                   min="1"
-                  max="8760"
+                  max="525600"
                   class="settings-input retention-input"
                 />
-                <span class="retention-unit">hours</span>
+                <span class="retention-unit">minutes</span>
               </div>
               <p class="field-hint">
-                Data older than this is automatically purged (default: 24 hours).
+                Data older than this is automatically purged (default: 1440 min / 24 hours).
               </p>
             </div>
           </div>
@@ -464,12 +464,12 @@ function formatFilesize(bytes: number | null): string {
               <div class="retention-input-row">
                 <input
                   type="number"
-                  v-model.number="purgeMaxAgeHours"
+                  v-model.number="purgeMaxAgeMinutes"
                   min="1"
-                  max="87600"
+                  max="5256000"
                   class="settings-input retention-input"
                 />
-                <span class="retention-unit">hours</span>
+                <span class="retention-unit">minutes</span>
               </div>
             </div>
           </div>

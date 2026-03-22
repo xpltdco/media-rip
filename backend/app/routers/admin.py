@@ -288,13 +288,13 @@ async def get_settings(
         "default_video_format": getattr(request.app.state, "_default_video_format", "auto"),
         "default_audio_format": getattr(request.app.state, "_default_audio_format", "auto"),
         "privacy_mode": config.purge.privacy_mode,
-        "privacy_retention_hours": config.purge.privacy_retention_hours,
+        "privacy_retention_minutes": config.purge.privacy_retention_minutes,
         "max_concurrent": config.downloads.max_concurrent,
         "session_mode": config.session.mode,
         "session_timeout_hours": config.session.timeout_hours,
         "admin_username": config.admin.username,
         "purge_enabled": config.purge.enabled,
-        "purge_max_age_hours": config.purge.max_age_hours,
+        "purge_max_age_minutes": config.purge.max_age_minutes,
     }
 
 
@@ -310,13 +310,13 @@ async def update_settings(
       - default_video_format: str (auto, mp4, webm)
       - default_audio_format: str (auto, mp3, m4a, flac, wav, opus)
       - privacy_mode: bool
-      - privacy_retention_hours: int (1-8760)
+      - privacy_retention_minutes: int (1-525600)
       - max_concurrent: int (1-10)
       - session_mode: str (isolated, shared, open)
       - session_timeout_hours: int (1-8760)
       - admin_username: str
       - purge_enabled: bool
-      - purge_max_age_hours: int (1-87600)
+      - purge_max_age_minutes: int (1-5256000)
     """
     from app.services.settings import save_settings
 
@@ -364,12 +364,12 @@ async def update_settings(
             if val and not getattr(request.app.state, "scheduler", None):
                 _start_purge_scheduler(request.app.state, config, db)
 
-    if "privacy_retention_hours" in body:
-        val = body["privacy_retention_hours"]
-        if isinstance(val, (int, float)) and 1 <= val <= 8760:
-            config.purge.privacy_retention_hours = int(val)
-            to_persist["privacy_retention_hours"] = int(val)
-            updated.append("privacy_retention_hours")
+    if "privacy_retention_minutes" in body:
+        val = body["privacy_retention_minutes"]
+        if isinstance(val, (int, float)) and 1 <= val <= 525600:
+            config.purge.privacy_retention_minutes = int(val)
+            to_persist["privacy_retention_minutes"] = int(val)
+            updated.append("privacy_retention_minutes")
 
     if "max_concurrent" in body:
         val = body["max_concurrent"]
@@ -411,12 +411,12 @@ async def update_settings(
             if val and not getattr(request.app.state, "scheduler", None):
                 _start_purge_scheduler(request.app.state, config, db)
 
-    if "purge_max_age_hours" in body:
-        val = body["purge_max_age_hours"]
-        if isinstance(val, int) and 1 <= val <= 87600:
-            config.purge.max_age_hours = val
-            to_persist["purge_max_age_hours"] = val
-            updated.append("purge_max_age_hours")
+    if "purge_max_age_minutes" in body:
+        val = body["purge_max_age_minutes"]
+        if isinstance(val, int) and 1 <= val <= 5256000:
+            config.purge.max_age_minutes = val
+            to_persist["purge_max_age_minutes"] = val
+            updated.append("purge_max_age_minutes")
 
     # --- Persist to DB ---
     if to_persist:
@@ -485,7 +485,7 @@ def _start_purge_scheduler(state, config, db) -> None:
         scheduler = AsyncIOScheduler()
         scheduler.add_job(
             run_purge,
-            CronTrigger(minute="*/30"),
+            CronTrigger(minute="*"),
             args=[db, config],
             id="purge_job",
             name="Scheduled purge",

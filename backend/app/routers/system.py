@@ -28,7 +28,7 @@ async def public_config(request: Request) -> dict:
         "default_video_format": getattr(request.app.state, "_default_video_format", "auto"),
         "default_audio_format": getattr(request.app.state, "_default_audio_format", "auto"),
         "privacy_mode": config.purge.privacy_mode,
-        "privacy_retention_hours": config.purge.privacy_retention_hours,
+        "privacy_retention_minutes": config.purge.privacy_retention_minutes,
         "admin_enabled": config.admin.enabled,
         "admin_setup_complete": bool(config.admin.password_hash),
     }
