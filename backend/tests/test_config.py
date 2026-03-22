@@ -29,7 +29,9 @@ class TestZeroConfig:
 
     def test_admin_defaults(self):
         config = AppConfig()
-        assert config.admin.enabled is False
+        assert config.admin.enabled is True
+        assert config.admin.username == "admin"
+        assert config.admin.password_hash == ""
 
     def test_source_templates_default_entries(self):
         config = AppConfig()

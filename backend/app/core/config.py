@@ -82,7 +82,7 @@ class UIConfig(BaseModel):
 class AdminConfig(BaseModel):
     """Admin panel settings."""
 
-    enabled: bool = False
+    enabled: bool = True
     username: str = "admin"
     password_hash: str = ""
 

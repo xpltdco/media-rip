@@ -77,6 +77,8 @@ export interface PublicConfig {
   default_audio_format: string
   privacy_mode: boolean
   privacy_retention_hours: number
+  admin_enabled: boolean
+  admin_setup_complete: boolean
 }
 
 export interface HealthStatus {
