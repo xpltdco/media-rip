@@ -194,7 +194,8 @@ function handlePaste(): void {
         await Promise.all([extractFormats(), fetchUrlInfo()])
         // Check if URL yielded anything useful
         if (urlInfo.value?.type === 'unknown') {
-          analyzeError.value = 'No downloadable media found at this URL.'
+          analyzeError.value = (urlInfo.value as any)?.hint
+            || 'No downloadable media found at this URL.'
           urlInfo.value = null
         } else if (!urlInfo.value && !extractError.value) {
           analyzeError.value = 'Could not reach this URL. Check the address and try again.'
