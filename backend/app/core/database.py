@@ -319,10 +319,10 @@ async def close_db(db: aiosqlite.Connection) -> None:
 
 
 async def create_session(db: aiosqlite.Connection, session_id: str) -> None:
-    """Insert a new session row."""
+    """Insert a new session row (idempotent — ignores duplicates)."""
     now = datetime.now(timezone.utc).isoformat()
     await db.execute(
-        "INSERT INTO sessions (id, created_at, last_seen) VALUES (?, ?, ?)",
+        "INSERT OR IGNORE INTO sessions (id, created_at, last_seen) VALUES (?, ?, ?)",
         (session_id, now, now),
     )
     await db.commit()
