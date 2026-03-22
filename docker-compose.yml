@@ -1,11 +1,10 @@
-# media.rip() — Zero-Config Docker Compose
+# media.rip() — Docker Compose
 #
 # Usage:
 #   docker compose up
 #
-# The app will be available at http://localhost:8080
-# Downloads are persisted in ./downloads/
-# Database + session state persisted in the mediarip-data volume.
+# Open http://localhost:8080 and paste a URL.
+# On first run, you'll be prompted to set an admin password.
 
 services:
   mediarip:
@@ -14,21 +13,27 @@ services:
     ports:
       - "8080:8000"
     volumes:
-      - ./downloads:/downloads      # Downloaded media files (browsable)
-      - mediarip-data:/data          # Database, sessions, error logs
-      # Optional:
-      # - ./themes:/themes:ro        # Custom theme CSS overrides
-      # - ./config.yaml:/app/config.yaml:ro  # YAML config file
-    environment:
-      - MEDIARIP__SESSION__MODE=isolated
-      # Admin panel (enabled by default — set password on first run in browser):
-      # - MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...your.bcrypt.hash...
+      - ./downloads:/downloads       # Downloaded media — browsable on host
+      - mediarip-data:/data          # Database, sessions, logs (persist this)
+      # - ./themes:/themes:ro        # Custom theme CSS (optional)
+      # - ./config.yaml:/app/config.yaml:ro  # Full config file (optional)
+    # environment:
+      ## ── Uncomment to customize (all have sane defaults) ──
       #
-      # Auto-purge (enabled by default — 24h retention):
+      ## Session isolation: isolated (default) | shared | open
+      # - MEDIARIP__SESSION__MODE=isolated
+      #
+      ## Max parallel downloads (default: 3)
+      # - MEDIARIP__DOWNLOADS__MAX_CONCURRENT=3
+      #
+      ## Auto-purge completed downloads after N minutes (default: 1440 = 24h)
       # - MEDIARIP__PURGE__MAX_AGE_MINUTES=1440
       #
-      # yt-dlp tuning (optional):
-      # - MEDIARIP__YTDLP__EXTRACTOR_ARGS={"youtube": {"player_client": ["web_safari"]}}
+      ## Pre-set admin password (skip first-run wizard):
+      # - MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...
+      #
+      ## YouTube tuning — change player client if downloads fail:
+      # - MEDIARIP__YTDLP__EXTRACTOR_ARGS={"youtube":{"player_client":["web_safari"]}}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
