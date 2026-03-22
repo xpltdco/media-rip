@@ -72,6 +72,18 @@ class DownloadService:
         # Per-job throttle state for DB writes (only used inside worker threads)
         self._last_db_percent: dict[str, float] = {}
 
+    def _base_opts(self) -> dict:
+        """Return yt-dlp options common to all invocations."""
+        opts: dict = {
+            "quiet": True,
+            "no_warnings": True,
+            # Enable remote JS challenge solver for YouTube signature/n-parameter
+            "remote_components": {"ejs:github"},
+        }
+        if self._config.ytdlp.extractor_args:
+            opts["extractor_args"] = self._config.ytdlp.extractor_args
+        return opts
+
     def update_max_concurrent(self, max_workers: int) -> None:
         """Update the thread pool size for concurrent downloads.
 
@@ -165,14 +177,13 @@ class DownloadService:
         os.makedirs(output_dir, exist_ok=True)
         outtmpl = os.path.join(output_dir, template)
 
-        opts: dict = {
+        opts = self._base_opts()
+        opts.update({
             "outtmpl": outtmpl,
-            "quiet": True,
-            "no_warnings": True,
             "noprogress": True,
             "noplaylist": True,  # Individual jobs — don't re-expand playlists
             "overwrites": True,  # Allow re-downloading same URL with different format
-        }
+        })
         if job_create.format_id:
             opts["format"] = job_create.format_id
         elif job_create.quality:
@@ -203,10 +214,6 @@ class DownloadService:
         )
         if cookie_path:
             opts["cookiefile"] = cookie_path
-
-        # Operator-configured extractor_args (e.g. YouTube player_client)
-        if self._config.ytdlp.extractor_args:
-            opts["extractor_args"] = self._config.ytdlp.extractor_args
 
         self._loop.run_in_executor(
             self._executor,
@@ -499,13 +506,8 @@ class DownloadService:
 
     def _extract_info(self, url: str) -> dict | None:
         """Run yt-dlp extract_info synchronously (called from thread pool)."""
-        opts: dict = {
-            "quiet": True,
-            "no_warnings": True,
-            "skip_download": True,
-        }
-        if self._config.ytdlp.extractor_args:
-            opts["extractor_args"] = self._config.ytdlp.extractor_args
+        opts = self._base_opts()
+        opts["skip_download"] = True
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
@@ -515,15 +517,12 @@ class DownloadService:
 
     def _extract_url_info(self, url: str) -> dict | None:
         """Extract URL metadata including playlist detection."""
-        opts: dict = {
-            "quiet": True,
-            "no_warnings": True,
+        opts = self._base_opts()
+        opts.update({
             "skip_download": True,
             "extract_flat": "in_playlist",
             "noplaylist": False,
-        }
-        if self._config.ytdlp.extractor_args:
-            opts["extractor_args"] = self._config.ytdlp.extractor_args
+        })
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 return ydl.extract_info(url, download=False)
