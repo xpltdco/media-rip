@@ -387,11 +387,11 @@ a.name-with-icon:hover .name-text {
   min-width: 0;
 }
 
-.col-status { width: 100px; }
+.col-status { width: 120px; white-space: nowrap; }
 .col-progress { width: 180px; min-width: 120px; }
 .col-speed { width: 100px; }
 .col-eta { width: 80px; }
-.col-actions { width: 110px; }
+.col-actions { width: 130px; }
 
 /* Status badges */
 .status-badge {
