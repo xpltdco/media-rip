@@ -299,16 +299,27 @@ function formatTooltip(fmt: string): string {
 
 <template>
   <div class="url-input">
-    <!-- URL field -->
-    <input
-      v-model="url"
-      type="url"
-      placeholder="Paste a URL to download…"
-      class="url-field"
-      @paste="handlePaste"
-      @keydown.enter="submitDownload"
-      :disabled="isAnalyzing || store.isSubmitting"
-    />
+    <!-- URL field with clear button -->
+    <div class="url-field-wrap">
+      <input
+        v-model="url"
+        type="url"
+        placeholder="Paste a URL to download…"
+        class="url-field"
+        @paste="handlePaste"
+        @keydown.enter="submitDownload"
+        :disabled="store.isSubmitting"
+      />
+      <button
+        v-if="url.trim()"
+        class="url-clear"
+        @click="url = ''"
+        title="Clear URL"
+        aria-label="Clear URL"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
 
     <!-- Action row: gear, media toggle, download button -->
     <div class="action-row">
@@ -456,15 +467,46 @@ function formatTooltip(fmt: string): string {
   width: 100%;
 }
 
+.url-field-wrap {
+  position: relative;
+  width: 100%;
+}
+
 .url-field {
   width: 100%;
   font-size: var(--font-size-base);
+  padding-right: 40px; /* room for clear button */
 }
 
-/* Action row: gear | toggle | download */
-.action-row {
+.url-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.url-clear:hover {
+  opacity: 1;
+  color: var(--color-text);
+}
+
+/* Action row: gear | toggle | download — all 42px height */
+.action-row {
+  display: flex;
+  align-items: stretch;
   gap: var(--space-sm);
 }
 
@@ -472,8 +514,8 @@ function formatTooltip(fmt: string): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 42px;
+  min-height: 42px;
   padding: 0;
   flex-shrink: 0;
   background: var(--color-surface);
@@ -513,7 +555,7 @@ function formatTooltip(fmt: string): string {
   border: none;
   border-radius: 0;
   font-size: var(--font-size-sm);
-  min-height: 38px;
+  min-height: 42px;
   transition: all 0.15s ease;
 }
 
@@ -540,7 +582,7 @@ function formatTooltip(fmt: string): string {
   white-space: nowrap;
   padding: var(--space-sm) var(--space-lg);
   font-weight: 600;
-  min-height: 38px;
+  min-height: 42px;
   background: var(--color-accent);
   color: var(--color-bg);
 }
@@ -832,6 +874,8 @@ button:disabled {
 
   .toggle-pill {
     padding: var(--space-xs) var(--space-sm);
+    min-width: 42px;
+    justify-content: center;
   }
 }
 

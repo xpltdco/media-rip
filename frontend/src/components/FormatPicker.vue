@@ -144,6 +144,7 @@ function selectFormat(id: string | null): void {
   cursor: pointer;
   min-height: var(--touch-min);
   transition: background-color 0.15s ease;
+  gap: var(--space-sm);
 }
 
 .format-option:hover {
@@ -157,6 +158,10 @@ function selectFormat(id: string | null): void {
 
 .format-label {
   font-size: var(--font-size-base);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .format-hint {
@@ -165,9 +170,31 @@ function selectFormat(id: string | null): void {
 }
 
 .format-codecs {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 540px) {
+  .format-option {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+
+  .format-label {
+    flex: 1 1 100%;
+    font-size: var(--font-size-sm);
+  }
+
+  .format-codecs {
+    font-size: 0.6875rem;
+    max-width: none;
+  }
 }
 
 .format-empty {
