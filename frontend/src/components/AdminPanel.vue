@@ -47,6 +47,10 @@ const passwordError = ref<string | null>(null)
 const apiKey = ref<string | null>(null)
 const showApiKey = ref(false)
 const apiKeyCopied = ref(false)
+const regenConfirming = ref(false)
+const revokeConfirming = ref(false)
+let regenConfirmTimer: ReturnType<typeof setTimeout> | null = null
+let revokeConfirmTimer: ReturnType<typeof setTimeout> | null = null
 
 const canChangePassword = computed(() =>
   currentPassword.value.length > 0 &&
@@ -193,6 +197,7 @@ async function generateApiKey() {
 
 async function regenerateApiKey() {
   await generateApiKey()
+  regenConfirming.value = false
 }
 
 async function revokeApiKey() {
@@ -203,6 +208,27 @@ async function revokeApiKey() {
       showApiKey.value = false
     }
   } catch { /* ignore */ }
+  revokeConfirming.value = false
+}
+
+function handleRegenClick() {
+  if (regenConfirming.value) {
+    regenerateApiKey()
+    return
+  }
+  regenConfirming.value = true
+  if (regenConfirmTimer) clearTimeout(regenConfirmTimer)
+  regenConfirmTimer = setTimeout(() => { regenConfirming.value = false }, 3000)
+}
+
+function handleRevokeClick() {
+  if (revokeConfirming.value) {
+    revokeApiKey()
+    return
+  }
+  revokeConfirming.value = true
+  if (revokeConfirmTimer) clearTimeout(revokeConfirmTimer)
+  revokeConfirmTimer = setTimeout(() => { revokeConfirming.value = false }, 3000)
 }
 
 function copyApiKey() {
@@ -618,8 +644,8 @@ function formatFilesize(bytes: number | null): string {
         <div class="settings-field">
           <label>API Key</label>
           <p class="field-hint">
-            When set, external API access requires this key via <code>X-API-Key</code> header.
-            Browser users are not affected. Without a key, the download API is open to anyone who can reach the server.
+            Generate a key to enable external API access (e.g. scripts, automation).
+            Without a key, downloads can only be submitted through the web UI.
           </p>
           <div v-if="apiKey" class="api-key-display">
             <div class="api-key-value">
@@ -633,13 +659,25 @@ function formatFilesize(bytes: number | null): string {
               </button>
             </div>
             <div class="api-key-actions">
-              <button class="btn-regen" @click="regenerateApiKey">Regenerate</button>
-              <button class="btn-revoke" @click="revokeApiKey">Revoke</button>
+              <button
+                class="btn-regen"
+                :class="{ 'btn-confirm': regenConfirming }"
+                @click="handleRegenClick"
+              >
+                {{ regenConfirming ? 'Sure?' : 'Regenerate' }}
+              </button>
+              <button
+                class="btn-revoke"
+                :class="{ 'btn-confirm': revokeConfirming }"
+                @click="handleRevokeClick"
+              >
+                {{ revokeConfirming ? 'Sure?' : 'Revoke' }}
+              </button>
             </div>
             <span v-if="apiKeyCopied" class="save-confirm">✓ Copied</span>
           </div>
           <div v-else class="api-key-empty">
-            <p class="field-hint" style="margin-bottom: var(--space-sm);">No API key set — download API is open.</p>
+            <p class="field-hint" style="margin-bottom: var(--space-sm);">No API key set — external API access is disabled.</p>
             <button class="btn-save" @click="generateApiKey">Generate API Key</button>
           </div>
         </div>
