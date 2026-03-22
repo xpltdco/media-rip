@@ -1,4 +1,0 @@
-# Replace YOUR_DOMAIN with your actual domain
-YOUR_DOMAIN {
-    reverse_proxy media-rip:8000
-}
