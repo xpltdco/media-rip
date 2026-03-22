@@ -185,8 +185,16 @@ async def test_session_isolation(client, tmp_path):
 
     transport = ASGITransport(app=test_app)
 
-    async with AsyncClient(transport=transport, base_url="http://test") as client_a:
-        async with AsyncClient(transport=transport, base_url="http://test") as client_b:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    ) as client_a:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers={"X-Requested-With": "XMLHttpRequest"},
+        ) as client_b:
             await client_a.post(
                 "/api/downloads",
                 json={"url": "https://example.com/a"},

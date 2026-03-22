@@ -109,7 +109,11 @@ async def client(tmp_path: Path):
     test_app.state.start_time = datetime.now(timezone.utc)
 
     transport = ASGITransport(app=test_app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"X-Requested-With": "XMLHttpRequest"},
+    ) as ac:
         yield ac
 
     # Teardown
