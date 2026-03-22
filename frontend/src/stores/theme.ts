@@ -115,12 +115,22 @@ export const useThemeStore = defineStore('theme', () => {
   }
 
   /**
-   * Update admin theme config (called after saving settings).
+   * Update admin theme config and apply if current mode matches.
+   * Called after saving settings — gives live preview without page reload.
    */
   function updateAdminConfig(darkTheme: string, lightTheme: string, defaultMode: 'dark' | 'light'): void {
     adminDarkTheme.value = darkTheme
     adminLightTheme.value = lightTheme
     adminDefaultMode.value = defaultMode
+
+    // Apply the new theme if user's current mode matches the changed side
+    if (currentMode.value === 'dark') {
+      currentTheme.value = darkTheme
+      _apply(darkTheme)
+    } else {
+      currentTheme.value = lightTheme
+      _apply(lightTheme)
+    }
   }
 
   /**

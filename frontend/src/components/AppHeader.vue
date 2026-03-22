@@ -27,6 +27,7 @@ function goHome(): void {
   position: sticky;
   top: 0;
   z-index: 100;
+  width: 100%;
   height: var(--header-height);
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -42,6 +43,12 @@ function goHome(): void {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media (max-width: 767px) {
+  .header-content {
+    max-width: none;
+  }
 }
 
 .header-title {
