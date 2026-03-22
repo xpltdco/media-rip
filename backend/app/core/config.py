@@ -98,7 +98,7 @@ class AdminConfig(BaseModel):
     enabled: bool = True
     username: str = "admin"
     password: str = ""       # Plaintext — hashed on startup, never stored
-    password_hash: str = ""  # Bcrypt hash — set directly or derived from password
+    password_hash: str = ""  # Internal — set by app on startup or first-run wizard
 
 
 # ---------------------------------------------------------------------------
