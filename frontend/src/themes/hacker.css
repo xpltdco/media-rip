@@ -1,0 +1,43 @@
+/* media.rip() — Hacker Theme
+ *
+ * Green-on-black terminal aesthetic. Monospace everything,
+ * phosphor glow, CRT scanlines. You're in the Matrix.
+ */
+
+:root[data-theme="hacker"] {
+  --color-bg: #0a0a0a;
+  --color-surface: #0f1a0f;
+  --color-surface-hover: #152215;
+  --color-border: #1a3a1a;
+
+  --color-text: #33ff33;
+  --color-text-muted: #1a8c1a;
+
+  --color-accent: #00ff41;
+  --color-accent-hover: #33ff66;
+  --color-accent-secondary: #ffcc00;
+
+  --color-success: #00ff41;
+  --color-warning: #ffcc00;
+  --color-error: #ff3333;
+
+  --font-ui: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  --font-display: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+
+  --effect-scanlines: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 1px,
+    rgba(0, 255, 65, 0.03) 1px,
+    rgba(0, 255, 65, 0.03) 2px
+  );
+  --effect-grid: none;
+  --effect-grid-size: 0px 0px;
+  --effect-glow: 0 0 12px rgba(0, 255, 65, 0.2);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 15px rgba(0, 255, 65, 0.12);
+}

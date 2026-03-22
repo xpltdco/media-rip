@@ -8,6 +8,12 @@ import './assets/base.css'
 import './themes/cyberpunk.css'
 import './themes/dark.css'
 import './themes/light.css'
+import './themes/midnight.css'
+import './themes/hacker.css'
+import './themes/neon.css'
+import './themes/paper.css'
+import './themes/arctic.css'
+import './themes/solarized.css'
 
 import App from './App.vue'
 

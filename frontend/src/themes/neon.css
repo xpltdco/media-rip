@@ -1,0 +1,42 @@
+/* media.rip() — Neon Theme
+ *
+ * Hot pink + cyan on deep purple-black. Vibrant, edgy,
+ * synthwave-inspired. Glow effects cranked up.
+ */
+
+:root[data-theme="neon"] {
+  --color-bg: #0d0014;
+  --color-surface: #150022;
+  --color-surface-hover: #1e0033;
+  --color-border: #2a0044;
+
+  --color-text: #f0e0ff;
+  --color-text-muted: #9966bb;
+
+  --color-accent: #ff2d95;
+  --color-accent-hover: #ff5cae;
+  --color-accent-secondary: #00e5ff;
+
+  --color-success: #00e676;
+  --color-warning: #ffab00;
+  --color-error: #ff1744;
+
+  --font-display: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+
+  --effect-scanlines: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255, 45, 149, 0.04) 3px,
+    rgba(255, 45, 149, 0.04) 4px
+  );
+  --effect-grid: linear-gradient(rgba(0, 229, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.02) 1px, transparent 1px);
+  --effect-grid-size: 40px 40px;
+  --effect-glow: 0 0 25px rgba(255, 45, 149, 0.2);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(13, 0, 20, 0.6);
+  --shadow-lg: 0 8px 24px rgba(13, 0, 20, 0.8);
+  --shadow-glow: 0 0 20px rgba(255, 45, 149, 0.15);
+}

@@ -1,0 +1,36 @@
+/* media.rip() — Solarized Light Theme
+ *
+ * Based on Ethan Schoonover's Solarized palette.
+ * Developer favorite — designed for extended use
+ * with carefully selected contrast ratios.
+ */
+
+:root[data-theme="solarized"] {
+  --color-bg: #fdf6e3;
+  --color-surface: #eee8d5;
+  --color-surface-hover: #e8e1cc;
+  --color-border: #d3cbaf;
+
+  --color-text: #586e75;
+  --color-text-muted: #93a1a1;
+
+  --color-accent: #268bd2;
+  --color-accent-hover: #1a6da3;
+  --color-accent-secondary: #d33682;
+
+  --color-success: #859900;
+  --color-warning: #b58900;
+  --color-error: #dc322f;
+
+  --font-display: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+
+  --effect-scanlines: none;
+  --effect-grid: none;
+  --effect-grid-size: 0px 0px;
+  --effect-glow: none;
+
+  --shadow-sm: 0 1px 2px rgba(88, 110, 117, 0.08);
+  --shadow-md: 0 3px 8px rgba(88, 110, 117, 0.1);
+  --shadow-lg: 0 8px 20px rgba(88, 110, 117, 0.12);
+  --shadow-glow: none;
+}
