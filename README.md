@@ -76,8 +76,7 @@ These are the knobs most operators actually touch — all shown commented out in
 |----------|---------|-------------|
 | `MEDIARIP__ADMIN__ENABLED` | `true` | Enable admin panel |
 | `MEDIARIP__ADMIN__USERNAME` | `admin` | Admin username |
-| `MEDIARIP__ADMIN__PASSWORD` | _(empty)_ | Admin password (plaintext — hashed on startup, never stored) |
-| `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Bcrypt hash (alternative to plaintext — for advanced users) |
+| `MEDIARIP__ADMIN__PASSWORD` | _(empty)_ | Admin password (hashed on startup, never stored as plaintext) |
 
 #### Purge
 
@@ -169,7 +168,7 @@ For production with TLS, use the included Caddy reverse proxy:
 ```bash
 cp docker-compose.example.yml docker-compose.yml
 cp .env.example .env
-# Edit .env with your domain and admin password hash
+# Edit .env with your domain and admin password
 docker compose up -d
 ```
 
