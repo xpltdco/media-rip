@@ -40,6 +40,12 @@ onMounted(async () => {
   opacity: 0.7;
 }
 
+@media (max-width: 767px) {
+  .app-footer {
+    padding-bottom: calc(var(--mobile-nav-height) + var(--space-md));
+  }
+}
+
 .sep {
   margin: 0 var(--space-sm);
   opacity: 0.5;
