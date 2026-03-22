@@ -53,6 +53,7 @@ export interface ProgressEvent {
   downloaded_bytes: number | null
   total_bytes: number | null
   filename: string | null
+  filesize?: number | null
   error_message?: string | null
 }
 
