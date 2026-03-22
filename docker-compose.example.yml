@@ -5,10 +5,6 @@
 # Setup:
 #   1. Copy .env.example to .env and fill in your values
 #   2. Run: docker compose -f docker-compose.example.yml up -d
-#
-# Generate a bcrypt password hash:
-#   docker run --rm python:3.12-slim python -c \
-#     "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
 
 services:
   media-rip:
@@ -25,7 +21,7 @@ services:
       # Admin panel
       MEDIARIP__ADMIN__ENABLED: "true"
       MEDIARIP__ADMIN__USERNAME: "${ADMIN_USERNAME:-admin}"
-      MEDIARIP__ADMIN__PASSWORD_HASH: "${ADMIN_PASSWORD_HASH}"
+      MEDIARIP__ADMIN__PASSWORD: "${ADMIN_PASSWORD}"
       # Session mode: isolated (default), shared, or open
       MEDIARIP__SESSION__MODE: "${SESSION_MODE:-isolated}"
     expose:
