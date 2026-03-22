@@ -25,26 +25,43 @@ A self-hostable yt-dlp web frontend. Paste a URL, pick quality, download — wit
 docker compose up
 ```
 
-Open [http://localhost:8080](http://localhost:8080) and paste a URL.
+Open [http://localhost:8080](http://localhost:8080) and paste a URL. On first run, you'll set an admin password.
 
-Downloads are saved to `./downloads/`.
+Downloads are saved to `./downloads/`. Everything else (database, sessions, logs) lives in a named Docker volume.
+
+> **That's it.** The defaults are production-ready: isolated sessions, admin panel with first-run setup wizard, 24h auto-purge, 3 concurrent downloads. Most users don't need to set any environment variables.
 
 ## Docker Volumes
 
-| Mount | Purpose | Persists |
+| Mount | Purpose | Required |
 |-------|---------|----------|
 | `/downloads` | Downloaded media files | ✅ Bind mount recommended |
 | `/data` | SQLite database, session cookies, error logs | ✅ Named volume recommended |
-| `/themes` | Custom theme CSS overrides (optional) | Read-only bind mount |
-| `/app/config.yaml` | YAML config file (optional) | Read-only bind mount |
-
-**Important:** The `/data` volume contains the database (download history, admin state, error logs) and session cookie files. Use a named volume or bind mount to persist across container restarts.
+| `/themes` | Custom theme CSS overrides | Optional |
+| `/app/config.yaml` | YAML config file | Optional |
 
 ## Configuration
 
-All settings have sensible defaults — zero config required. Override via environment variables or mount a `config.yaml`:
+Everything works out of the box. The settings below are for operators who want to tune specific behavior.
 
-### Core Settings
+### Most Useful Settings
+
+These are the knobs most operators actually touch — all shown commented out in `docker-compose.yml`:
+
+| Variable | Default | When to change |
+|----------|---------|----------------|
+| `MEDIARIP__SESSION__MODE` | `isolated` | Set to `shared` for family/team use, `open` to disable sessions entirely |
+| `MEDIARIP__DOWNLOADS__MAX_CONCURRENT` | `3` | Increase for faster connections, decrease on low-spec hardware |
+| `MEDIARIP__PURGE__MAX_AGE_MINUTES` | `1440` | Raise for longer retention, or set `PURGE__ENABLED=false` to keep forever |
+| `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Pre-set to skip the first-run wizard (useful for automated deployments) |
+| `MEDIARIP__YTDLP__EXTRACTOR_ARGS` | `{}` | Tune YouTube player client if downloads 403 (see [yt-dlp Tuning](#yt-dlp-tuning)) |
+
+### All Settings
+
+<details>
+<summary>Full reference — click to expand</summary>
+
+#### Core
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -54,7 +71,7 @@ All settings have sensible defaults — zero config required. Override via envir
 | `MEDIARIP__SESSION__MODE` | `isolated` | `isolated`, `shared`, or `open` |
 | `MEDIARIP__SESSION__TIMEOUT_HOURS` | `72` | Session cookie lifetime (hours) |
 
-### Admin Panel
+#### Admin
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -62,7 +79,7 @@ All settings have sensible defaults — zero config required. Override via envir
 | `MEDIARIP__ADMIN__USERNAME` | `admin` | Admin username |
 | `MEDIARIP__ADMIN__PASSWORD_HASH` | _(empty)_ | Bcrypt hash of admin password |
 
-### Auto-Purge
+#### Purge
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -72,61 +89,62 @@ All settings have sensible defaults — zero config required. Override via envir
 | `MEDIARIP__PURGE__PRIVACY_MODE` | `false` | Aggressive cleanup — removes downloads + logs on schedule |
 | `MEDIARIP__PURGE__PRIVACY_RETENTION_MINUTES` | `1440` | Retention period when privacy mode is enabled |
 
-### UI Customization
+#### UI
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MEDIARIP__UI__DEFAULT_THEME` | `dark` | Default theme (`dark`, `light`, `cyberpunk`, or custom) |
 | `MEDIARIP__UI__WELCOME_MESSAGE` | _(built-in)_ | Header subtitle text shown to users |
 
-### yt-dlp Tuning
+#### yt-dlp
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MEDIARIP__YTDLP__EXTRACTOR_ARGS` | `{}` | JSON object of yt-dlp extractor args (see below) |
+| `MEDIARIP__YTDLP__EXTRACTOR_ARGS` | `{}` | JSON object of yt-dlp extractor args |
 
-Use `extractor_args` to tune YouTube player client selection or pass arguments to any yt-dlp extractor:
+> **Note:** Internal paths (`SERVER__DB_PATH`, `SERVER__DATA_DIR`, `DOWNLOADS__OUTPUT_DIR`) are pre-configured in the Docker image. Only override these if you change the volume mount points.
+
+</details>
+
+### Session Modes
+
+- **isolated** (default): Each browser session has its own private download queue.
+- **shared**: All sessions see all downloads. Good for household/team use.
+- **open**: No session tracking at all. Everyone shares one queue.
+
+### Admin Panel
+
+Enabled by default. On first run, you'll be prompted to set a password in the browser.
+
+To pre-configure for automated deployments (skip the wizard):
+
+```bash
+# Generate a bcrypt hash
+docker run --rm python:3.12-slim python -c \
+  "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
+
+# Then set in docker-compose.yml:
+# MEDIARIP__ADMIN__PASSWORD_HASH=$2b$12$...your.hash...
+```
+
+### yt-dlp Tuning
+
+If YouTube downloads fail with HTTP 403, try changing the player client:
+
+```bash
+# Environment variable
+MEDIARIP__YTDLP__EXTRACTOR_ARGS='{"youtube": {"player_client": ["web_safari"]}}'
+```
 
 ```yaml
-# config.yaml
+# Or in config.yaml
 ytdlp:
   extractor_args:
     youtube:
       player_client: ["web_safari", "android_vr"]
 ```
 
-Or via environment variable:
-
-```bash
-MEDIARIP__YTDLP__EXTRACTOR_ARGS='{"youtube": {"player_client": ["web_safari"]}}'
-```
-
-> **Note:** Internal paths (`SERVER__DB_PATH`, `SERVER__DATA_DIR`, `DOWNLOADS__OUTPUT_DIR`) are pre-configured in the Docker image. Only override these if you change the volume mount points.
-
-### Session Modes
-
-- **isolated** (default): Each browser session has its own private queue.
-- **shared**: All sessions see all downloads. Good for household/team use.
-- **open**: No session tracking at all.
-
-### Admin Panel
-
-The admin panel is enabled by default. On first run, you'll be prompted to set a password in the browser. Or pre-configure via environment:
-
-```yaml
-# docker-compose.yml environment section
-MEDIARIP__ADMIN__ENABLED: "true"
-MEDIARIP__ADMIN__USERNAME: "admin"
-MEDIARIP__ADMIN__PASSWORD_HASH: "$2b$12$..."  # see below
-```
-
-Generate a bcrypt password hash:
-```bash
-docker run --rm python:3.12-slim python -c \
-  "import bcrypt; print(bcrypt.hashpw(b'YOUR_PASSWORD', bcrypt.gensalt()).decode())"
-```
-
-Admin state (login, settings changes) persists in the SQLite database at `/data/mediarip.db`.
+You can also upload a `cookies.txt` from a logged-in browser session via the UI for authenticated downloads.
 
 ## Custom Themes
 
