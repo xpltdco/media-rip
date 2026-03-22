@@ -55,6 +55,19 @@ class DownloadsConfig(BaseModel):
     default_template: str = "%(title)s.%(ext)s"
 
 
+class YtdlpConfig(BaseModel):
+    """yt-dlp tuning — operator-level knobs for YouTube and other extractors.
+
+    ``extractor_args`` maps extractor names to dicts of arg lists, e.g.:
+        youtube:
+          player_client: ["web_safari", "android_vr"]
+
+    These are passed through to yt-dlp as ``extractor_args``.
+    """
+
+    extractor_args: dict[str, dict[str, list[str]]] = {}
+
+
 class SessionConfig(BaseModel):
     """Session management settings."""
 
@@ -128,6 +141,7 @@ class AppConfig(BaseSettings):
     purge: PurgeConfig = PurgeConfig()
     ui: UIConfig = UIConfig()
     admin: AdminConfig = AdminConfig()
+    ytdlp: YtdlpConfig = YtdlpConfig()
     themes_dir: str = "./themes"
 
     @classmethod
