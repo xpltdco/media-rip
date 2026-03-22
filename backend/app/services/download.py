@@ -430,6 +430,23 @@ class DownloadService:
                         relative_fn = str(abs_path.relative_to(out_dir))
                     except ValueError:
                         relative_fn = abs_path.name
+
+                    # Capture filesize from metadata
+                    file_size = info.get("filesize") or info.get("filesize_approx")
+                    if file_size:
+                        asyncio.run_coroutine_threadsafe(
+                            update_job_progress(
+                                self._db, job_id, 0, None, None, relative_fn,
+                                filesize=int(file_size),
+                            ),
+                            self._loop,
+                        ).result(timeout=10)
+                        self._broker.publish(session_id, {
+                            "event": "job_update",
+                            "data": {"job_id": job_id, "status": "downloading",
+                                     "percent": 0, "filename": relative_fn,
+                                     "filesize": int(file_size)},
+                        })
                 else:
                     relative_fn = None
 

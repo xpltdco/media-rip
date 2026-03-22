@@ -45,6 +45,10 @@ RUN useradd --create-home --shell /bin/bash mediarip
 WORKDIR /app
 COPY backend/ ./
 
+# Inject version from build arg (set by CI from git tag)
+ARG APP_VERSION=dev
+RUN echo "__version__ = \"${APP_VERSION}\"" > app/__version__.py
+
 # Copy built frontend into backend static dir
 COPY --from=frontend-builder /build/frontend/dist ./static
 

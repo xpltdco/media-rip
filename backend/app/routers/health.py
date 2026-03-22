@@ -20,7 +20,10 @@ try:
 except ImportError:  # pragma: no cover
     _yt_dlp_version = "unknown"
 
-_APP_VERSION = "0.1.0"
+try:
+    from app.__version__ import __version__ as _APP_VERSION
+except ImportError:  # pragma: no cover
+    _APP_VERSION = "dev"
 
 
 @router.get("/health")

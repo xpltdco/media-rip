@@ -112,6 +112,13 @@ function isCompleted(job: Job): boolean {
   return job.status === 'completed'
 }
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+}
+
 /** Infer whether the job is audio or video from quality/filename. */
 function isAudioJob(job: Job): boolean {
   if (job.quality === 'bestaudio') return true
@@ -184,6 +191,9 @@ async function clearJob(jobId: string): Promise<void> {
           <th class="col-speed sortable hide-mobile" @click="toggleSort('speed')">
             Speed{{ sortIndicator('speed') }}
           </th>
+          <th class="col-size hide-mobile">
+            Size
+          </th>
           <th class="col-eta sortable hide-mobile" @click="toggleSort('eta')">
             ETA{{ sortIndicator('eta') }}
           </th>
@@ -225,6 +235,10 @@ async function clearJob(jobId: string): Promise<void> {
           </td>
           <td class="col-speed hide-mobile">
             <span v-if="job.speed" class="mono">{{ job.speed }}</span>
+            <span v-else class="text-muted">—</span>
+          </td>
+          <td class="col-size hide-mobile">
+            <span v-if="job.filesize" class="mono">{{ formatSize(job.filesize) }}</span>
             <span v-else class="text-muted">—</span>
           </td>
           <td class="col-eta hide-mobile">

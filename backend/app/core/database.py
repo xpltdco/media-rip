@@ -289,16 +289,27 @@ async def update_job_progress(
     speed: str | None = None,
     eta: str | None = None,
     filename: str | None = None,
+    filesize: int | None = None,
 ) -> None:
     """Update live progress fields for a running download."""
-    await db.execute(
-        """
-        UPDATE jobs
-           SET progress_percent = ?, speed = ?, eta = ?, filename = ?
-         WHERE id = ?
-        """,
-        (progress_percent, speed, eta, filename, job_id),
-    )
+    if filesize is not None:
+        await db.execute(
+            """
+            UPDATE jobs
+               SET progress_percent = ?, speed = ?, eta = ?, filename = ?, filesize = ?
+             WHERE id = ?
+            """,
+            (progress_percent, speed, eta, filename, filesize, job_id),
+        )
+    else:
+        await db.execute(
+            """
+            UPDATE jobs
+               SET progress_percent = ?, speed = ?, eta = ?, filename = ?
+             WHERE id = ?
+            """,
+            (progress_percent, speed, eta, filename, job_id),
+        )
     await db.commit()
 
 
