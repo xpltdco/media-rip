@@ -5,6 +5,7 @@ import { useAdminStore } from '@/stores/admin'
 import { useConfigStore } from '@/stores/config'
 import { api } from '@/api/client'
 import AdminLogin from './AdminLogin.vue'
+import AdminSetup from './AdminSetup.vue'
 
 const store = useAdminStore()
 const configStore = useConfigStore()
@@ -194,7 +195,16 @@ function formatFilesize(bytes: number | null): string {
 
 <template>
   <div class="admin-panel">
-    <AdminLogin v-if="!store.isAuthenticated" />
+    <!-- First-run setup: no password configured yet -->
+    <AdminSetup v-if="configStore.config?.admin_enabled && !configStore.config?.admin_setup_complete" />
+
+    <!-- Admin disabled -->
+    <div v-else-if="!configStore.config?.admin_enabled" class="admin-disabled">
+      <p>Admin panel is disabled. Set <code>admin.enabled: true</code> in your config to enable it.</p>
+    </div>
+
+    <!-- Normal login/panel flow -->
+    <AdminLogin v-else-if="!store.isAuthenticated" />
 
     <template v-else>
       <div class="admin-header">
@@ -1111,5 +1121,23 @@ h3 {
   margin-top: var(--space-xs);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+.admin-disabled {
+  max-width: 400px;
+  margin: var(--space-xl) auto;
+  padding: var(--space-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.admin-disabled code {
+  background: var(--color-bg);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
 }
 </style>

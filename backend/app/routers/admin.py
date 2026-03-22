@@ -1,12 +1,15 @@
 """Admin API endpoints — protected by require_admin dependency.
 
 Settings are persisted to SQLite and survive container restarts.
+Admin setup (first-run password creation) is unauthenticated but only
+available when no password has been configured yet.
 """
 
 from __future__ import annotations
 
 import logging
 
+import bcrypt
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
@@ -15,6 +18,83 @@ from app.dependencies import require_admin
 logger = logging.getLogger("mediarip.admin")
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+# ---------------------------------------------------------------------------
+# Public endpoints (no auth) — admin status + first-run setup
+# ---------------------------------------------------------------------------
+
+
+@router.get("/status")
+async def admin_status(request: Request) -> dict:
+    """Public endpoint: is admin enabled, and has initial setup been done?"""
+    config = request.app.state.config
+    return {
+        "enabled": config.admin.enabled,
+        "setup_complete": bool(config.admin.password_hash),
+    }
+
+
+@router.post("/setup")
+async def admin_setup(request: Request) -> dict:
+    """First-run setup: create admin credentials.
+
+    Only works when admin is enabled AND no password has been set yet.
+    After setup, this endpoint returns 403 — use /admin/password to change.
+    """
+    config = request.app.state.config
+
+    if not config.admin.enabled:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Admin panel is not enabled"},
+        )
+
+    if config.admin.password_hash:
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "Admin is already configured. Use the change password flow."},
+        )
+
+    body = await request.json()
+    username = body.get("username", "").strip()
+    password = body.get("password", "")
+
+    if not username:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Username is required"},
+        )
+
+    if len(password) < 4:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": "Password must be at least 4 characters"},
+        )
+
+    # Hash and persist
+    password_hash = bcrypt.hashpw(
+        password.encode("utf-8"), bcrypt.gensalt()
+    ).decode("utf-8")
+
+    config.admin.username = username
+    config.admin.password_hash = password_hash
+
+    # Persist to DB so it survives restarts
+    from app.services.settings import save_settings
+    db = request.app.state.db
+    await save_settings(db, {
+        "admin_username": username,
+        "admin_password_hash": password_hash,
+    })
+
+    logger.info("Admin setup complete — user '%s' created", username)
+    return {"status": "ok", "username": username}
+
+
+# ---------------------------------------------------------------------------
+# Authenticated endpoints
+# ---------------------------------------------------------------------------
 
 
 @router.get("/sessions")
@@ -351,9 +431,7 @@ async def change_password(
     request: Request,
     _admin: str = Depends(require_admin),
 ) -> dict:
-    """Change admin password. Persisted in-memory only (set via env var for persistence)."""
-    import bcrypt
-
+    """Change admin password. Persisted to SQLite for durability."""
     body = await request.json()
     current = body.get("current_password", "")
     new_pw = body.get("new_password", "")
@@ -387,8 +465,13 @@ async def change_password(
 
     new_hash = bcrypt.hashpw(new_pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     config.admin.password_hash = new_hash
-    logger.info("Admin password changed by user '%s'", _admin)
 
+    # Persist to DB
+    from app.services.settings import save_settings
+    db = request.app.state.db
+    await save_settings(db, {"admin_password_hash": new_hash})
+
+    logger.info("Admin password changed by user '%s'", _admin)
     return {"status": "ok", "message": "Password changed successfully"}
 
 

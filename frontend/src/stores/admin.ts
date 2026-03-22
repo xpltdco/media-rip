@@ -72,6 +72,27 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  async function setup(user: string, pass: string): Promise<boolean> {
+    authError.value = null
+    try {
+      const res = await fetch('/api/admin/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass }),
+      })
+      if (res.ok) {
+        // Auto-login after setup
+        return await login(user, pass)
+      }
+      const data = await res.json()
+      authError.value = data.detail || `Setup failed: ${res.status}`
+      return false
+    } catch (err: any) {
+      authError.value = err.message || 'Network error'
+      return false
+    }
+  }
+
   function logout(): void {
     username.value = ''
     password.value = ''
@@ -176,6 +197,7 @@ export const useAdminStore = defineStore('admin', () => {
     isLoading,
     errorLog,
     login,
+    setup,
     logout,
     loadSessions,
     loadStorage,

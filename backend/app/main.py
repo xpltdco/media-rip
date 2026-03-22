@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
         logger.info("Config loaded from defaults + env vars (no YAML file)")
 
     # --- TLS warning ---
-    if config.admin.enabled:
+    if config.admin.enabled and config.admin.password_hash:
         logger.warning(
             "Admin panel is enabled. Ensure HTTPS is configured via a reverse proxy "
             "(Caddy, Traefik, nginx) to protect admin credentials in transit."

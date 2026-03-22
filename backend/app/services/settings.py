@@ -31,6 +31,7 @@ ADMIN_WRITABLE_KEYS = {
     "session_mode",
     "session_timeout_hours",
     "admin_username",
+    "admin_password_hash",
     "purge_enabled",
     "purge_max_age_hours",
 }
@@ -99,6 +100,8 @@ def apply_persisted_to_config(config, settings: dict) -> None:
         config.session.timeout_hours = settings["session_timeout_hours"]
     if "admin_username" in settings:
         config.admin.username = settings["admin_username"]
+    if "admin_password_hash" in settings:
+        config.admin.password_hash = settings["admin_password_hash"]
     if "purge_enabled" in settings:
         config.purge.enabled = settings["purge_enabled"]
     if "purge_max_age_hours" in settings:

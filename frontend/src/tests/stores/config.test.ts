@@ -35,6 +35,8 @@ describe('config store', () => {
       default_audio_format: 'auto',
       privacy_mode: false,
       privacy_retention_hours: 24,
+      admin_enabled: true,
+      admin_setup_complete: false,
     }
     vi.mocked(api.getPublicConfig).mockResolvedValue(mockConfig)
 
