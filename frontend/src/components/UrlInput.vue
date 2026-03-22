@@ -184,10 +184,12 @@ function onFormatSelect(formatId: string | null): void {
 }
 
 function handlePaste(): void {
+  // Immediately signal that analysis is starting — prevents the Download
+  // button from being briefly clickable between paste and analysis.
+  isAnalyzing.value = true
   // Auto-extract on paste — unified loading state
   setTimeout(async () => {
     if (url.value.trim()) {
-      isAnalyzing.value = true
       analyzeError.value = null
       startAnalyzePhase()
       try {
@@ -204,6 +206,9 @@ function handlePaste(): void {
         isAnalyzing.value = false
         stopAnalyzePhase()
       }
+    } else {
+      // URL was cleared before timeout — cancel analysis state
+      isAnalyzing.value = false
     }
   }, 50)
 }

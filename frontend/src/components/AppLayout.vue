@@ -1,13 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useThemeStore } from '@/stores/theme'
+import { useDownloadsStore } from '@/stores/downloads'
 import WireframeBackground from './WireframeBackground.vue'
 
 const themeStore = useThemeStore()
+const downloadsStore = useDownloadsStore()
 const showWireframe = computed(() => themeStore.currentTheme === 'cyberpunk')
 
 type MobileTab = 'submit' | 'queue'
 const activeTab = ref<MobileTab>('submit')
+
+/** Number of active (non-terminal) jobs — shown as badge on Queue tab */
+const queueBadge = computed(() => {
+  let count = 0
+  for (const job of downloadsStore.jobs.values()) {
+    if (job.status === 'queued' || job.status === 'downloading' || job.status === 'extracting') {
+      count++
+    }
+  }
+  return count
+})
 </script>
 
 <template>
@@ -41,7 +54,10 @@ const activeTab = ref<MobileTab>('submit')
         :class="{ active: activeTab === 'queue' }"
         @click="activeTab = 'queue'"
       >
-        <span class="nav-icon">☰</span>
+        <span class="nav-icon-wrap">
+          <span class="nav-icon">☰</span>
+          <span v-if="queueBadge > 0 && activeTab !== 'queue'" class="nav-badge">{{ queueBadge > 9 ? '9+' : queueBadge }}</span>
+        </span>
         <span class="nav-label">Queue</span>
       </button>
     </nav>
@@ -135,6 +151,27 @@ const activeTab = ref<MobileTab>('submit')
     font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+  }
+
+  .nav-icon-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .nav-badge {
+    position: absolute;
+    top: -6px;
+    right: -10px;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    font-size: 0.6rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: var(--radius-full);
+    padding: 0 3px;
   }
 }
 </style>
