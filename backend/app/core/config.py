@@ -40,6 +40,7 @@ class ServerConfig(BaseModel):
     log_level: str = "info"
     db_path: str = "mediarip.db"
     data_dir: str = "/data"
+    api_key: str = ""  # Managed via admin panel — not typically set via env
 
 
 class DownloadsConfig(BaseModel):

@@ -43,6 +43,11 @@ const changingPassword = ref(false)
 const passwordChanged = ref(false)
 const passwordError = ref<string | null>(null)
 
+// API key state
+const apiKey = ref<string | null>(null)
+const showApiKey = ref(false)
+const apiKeyCopied = ref(false)
+
 const canChangePassword = computed(() =>
   currentPassword.value.length > 0 &&
   newPassword.value.length >= 4 &&
@@ -84,6 +89,7 @@ async function switchTab(tab: typeof activeTab.value) {
     } catch {
       // Keep current values
     }
+    await loadApiKey()
   }
 }
 
@@ -157,6 +163,53 @@ async function changePassword() {
     passwordError.value = 'Network error'
   } finally {
     changingPassword.value = false
+  }
+}
+
+function authHeaders(): Record<string, string> {
+  return { 'Authorization': 'Basic ' + btoa(store.username + ':' + store.password) }
+}
+
+async function loadApiKey() {
+  try {
+    const res = await fetch('/api/admin/api-key', { headers: authHeaders() })
+    if (res.ok) {
+      const data = await res.json()
+      apiKey.value = data.api_key
+    }
+  } catch { /* ignore */ }
+}
+
+async function generateApiKey() {
+  try {
+    const res = await fetch('/api/admin/api-key', { method: 'POST', headers: authHeaders() })
+    if (res.ok) {
+      const data = await res.json()
+      apiKey.value = data.api_key
+      showApiKey.value = true
+    }
+  } catch { /* ignore */ }
+}
+
+async function regenerateApiKey() {
+  await generateApiKey()
+}
+
+async function revokeApiKey() {
+  try {
+    const res = await fetch('/api/admin/api-key', { method: 'DELETE', headers: authHeaders() })
+    if (res.ok) {
+      apiKey.value = null
+      showApiKey.value = false
+    }
+  } catch { /* ignore */ }
+}
+
+function copyApiKey() {
+  if (apiKey.value) {
+    navigator.clipboard.writeText(apiKey.value)
+    apiKeyCopied.value = true
+    setTimeout(() => { apiKeyCopied.value = false }, 2000)
   }
 }
 
@@ -556,6 +609,38 @@ function formatFilesize(bytes: number | null): string {
             </button>
             <span v-if="passwordChanged" class="save-confirm">✓ Password changed</span>
             <span v-if="passwordError" class="password-error">{{ passwordError }}</span>
+          </div>
+        </div>
+
+        <hr class="settings-divider" />
+
+        <!-- API Key management -->
+        <div class="settings-field">
+          <label>API Key</label>
+          <p class="field-hint">
+            When set, external API access requires this key via <code>X-API-Key</code> header.
+            Browser users are not affected. Without a key, the download API is open to anyone who can reach the server.
+          </p>
+          <div v-if="apiKey" class="api-key-display">
+            <div class="api-key-value">
+              <code class="mono api-key-text">{{ showApiKey ? apiKey : '•'.repeat(32) }}</code>
+              <button class="btn-icon" @click="showApiKey = !showApiKey" :title="showApiKey ? 'Hide' : 'Show'">
+                <svg v-if="showApiKey" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button class="btn-icon" @click="copyApiKey" title="Copy to clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <div class="api-key-actions">
+              <button class="btn-regen" @click="regenerateApiKey">Regenerate</button>
+              <button class="btn-revoke" @click="revokeApiKey">Revoke</button>
+            </div>
+            <span v-if="apiKeyCopied" class="save-confirm">✓ Copied</span>
+          </div>
+          <div v-else class="api-key-empty">
+            <p class="field-hint" style="margin-bottom: var(--space-sm);">No API key set — download API is open.</p>
+            <button class="btn-save" @click="generateApiKey">Generate API Key</button>
           </div>
         </div>
       </div>
@@ -1139,5 +1224,79 @@ h3 {
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
+}
+
+/* API Key */
+.api-key-display {
+  margin-top: var(--space-sm);
+}
+
+.api-key-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.api-key-text {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-size-sm);
+  word-break: break-all;
+  flex: 1;
+  max-width: 420px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.btn-icon:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.api-key-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.btn-regen {
+  background: transparent;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.btn-regen:hover {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.btn-revoke {
+  background: transparent;
+  color: var(--color-error, #e74c3c);
+  border: 1px solid var(--color-error, #e74c3c);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.btn-revoke:hover {
+  background: var(--color-error, #e74c3c);
+  color: white;
 }
 </style>

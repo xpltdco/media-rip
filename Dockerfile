@@ -54,7 +54,15 @@ COPY --from=frontend-builder /build/frontend/dist ./static
 
 # Create default directories
 RUN mkdir -p /downloads /data && \
-    chown -R mediarip:mediarip /app /downloads /data
+    chown -R mediarip:mediarip /downloads /data
+
+# Harden: strip SUID/SGID bits (unnecessary in a single-purpose container)
+RUN find / -perm -4000 -exec chmod u-s {} + 2>/dev/null; \
+    find / -perm -2000 -exec chmod g-s {} + 2>/dev/null; \
+    true
+
+# Harden: make app source read-only (only /downloads and /data are writable)
+RUN chmod -R a-w /app
 
 USER mediarip
 
