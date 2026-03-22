@@ -520,7 +520,7 @@ async def revoke_api_key(
     config = request.app.state.config
     config.server.api_key = ""
 
-    from app.services.settings import save_settings, delete_setting
+    from app.services.settings import delete_setting
     db = request.app.state.db
     await delete_setting(db, "api_key")
 
