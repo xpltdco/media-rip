@@ -1,0 +1,40 @@
+/* media.rip() — Midnight Theme
+ *
+ * Ultra-minimal dark theme. Near-black backgrounds,
+ * muted steel blue accents, zero visual effects.
+ * For people who want the UI to disappear.
+ */
+
+:root[data-theme="midnight"] {
+  --color-bg: #060608;
+  --color-surface: #0e0e12;
+  --color-surface-hover: #16161c;
+  --color-border: #1c1c24;
+
+  --color-text: #c8ccd0;
+  --color-text-muted: #5c6370;
+
+  --color-accent: #6b8aaf;
+  --color-accent-hover: #8aa4c4;
+  --color-accent-secondary: #af6b8a;
+
+  --color-success: #5faa7c;
+  --color-warning: #c4a35a;
+  --color-error: #c45a5a;
+
+  --font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --effect-scanlines: none;
+  --effect-grid: none;
+  --effect-grid-size: 0px 0px;
+  --effect-glow: none;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.7);
+  --shadow-glow: none;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}

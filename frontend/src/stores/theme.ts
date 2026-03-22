@@ -17,15 +17,24 @@ export interface ThemeMeta {
   author?: string
   description?: string
   builtin: boolean
+  variant: 'dark' | 'light'
 }
 
 const STORAGE_KEY = 'mrip-theme'
 const DEFAULT_THEME = 'cyberpunk'
 
 const BUILTIN_THEMES: ThemeMeta[] = [
-  { id: 'cyberpunk', name: 'Cyberpunk', author: 'media.rip()', description: 'Electric blue + orange, scanlines, grid overlay', builtin: true },
-  { id: 'dark', name: 'Dark', author: 'media.rip()', description: 'Clean neutral dark theme', builtin: true },
-  { id: 'light', name: 'Light', author: 'media.rip()', description: 'Clean light theme for daylight use', builtin: true },
+  // Dark themes
+  { id: 'cyberpunk', name: 'Cyberpunk', author: 'media.rip()', description: 'Electric blue + orange, scanlines, grid overlay', builtin: true, variant: 'dark' },
+  { id: 'dark', name: 'Dark', author: 'media.rip()', description: 'Clean neutral dark theme', builtin: true, variant: 'dark' },
+  { id: 'midnight', name: 'Midnight', author: 'media.rip()', description: 'Ultra-minimal, near-black, zero effects', builtin: true, variant: 'dark' },
+  { id: 'hacker', name: 'Hacker', author: 'media.rip()', description: 'Green-on-black terminal aesthetic', builtin: true, variant: 'dark' },
+  { id: 'neon', name: 'Neon', author: 'media.rip()', description: 'Hot pink + cyan on deep purple, synthwave vibes', builtin: true, variant: 'dark' },
+  // Light themes
+  { id: 'light', name: 'Light', author: 'media.rip()', description: 'Clean light theme for daylight use', builtin: true, variant: 'light' },
+  { id: 'paper', name: 'Paper', author: 'media.rip()', description: 'Warm cream and sepia, book-like', builtin: true, variant: 'light' },
+  { id: 'arctic', name: 'Arctic', author: 'media.rip()', description: 'Cool whites and icy blues, crisp and sharp', builtin: true, variant: 'light' },
+  { id: 'solarized', name: 'Solarized', author: 'media.rip()', description: 'Solarized Light — easy on the eyes', builtin: true, variant: 'light' },
 ]
 
 export const useThemeStore = defineStore('theme', () => {
@@ -33,8 +42,14 @@ export const useThemeStore = defineStore('theme', () => {
   const customThemes = ref<ThemeMeta[]>([])
   const customThemeCSS = ref<Map<string, string>>(new Map())
 
-  /** Whether the current theme is a dark variant (cyberpunk and dark are dark; light is light). */
-  const isDark = computed(() => currentTheme.value !== 'light')
+  /** Whether the current theme is a dark variant. */
+  const isDark = computed(() => {
+    const meta = allThemes.value.find(t => t.id === currentTheme.value)
+    return meta ? meta.variant === 'dark' : true
+  })
+
+  const darkThemes = computed(() => allThemes.value.filter(t => t.variant === 'dark'))
+  const lightThemes = computed(() => allThemes.value.filter(t => t.variant === 'light'))
 
   const allThemes = computed<ThemeMeta[]>(() => [
     ...BUILTIN_THEMES,
@@ -64,11 +79,13 @@ export const useThemeStore = defineStore('theme', () => {
    */
   function toggleDarkMode(): void {
     if (isDark.value) {
-      setTheme('light')
+      // Switch to last used light theme, or first available
+      const lastLight = localStorage.getItem(STORAGE_KEY + '-light') || 'light'
+      setTheme(lastLight)
     } else {
       // Return to the last dark theme, defaulting to cyberpunk
       const lastDark = localStorage.getItem(STORAGE_KEY + '-dark') || DEFAULT_THEME
-      setTheme(lastDark === 'light' ? DEFAULT_THEME : lastDark)
+      setTheme(lastDark)
     }
   }
 
@@ -82,8 +99,11 @@ export const useThemeStore = defineStore('theme', () => {
     currentTheme.value = themeId
     localStorage.setItem(STORAGE_KEY, themeId)
     // Remember the last dark theme for toggle
-    if (themeId !== 'light') {
+    const meta = allThemes.value.find(t => t.id === themeId)
+    if (meta?.variant === 'dark') {
       localStorage.setItem(STORAGE_KEY + '-dark', themeId)
+    } else {
+      localStorage.setItem(STORAGE_KEY + '-light', themeId)
     }
     _apply(themeId)
   }
@@ -104,6 +124,7 @@ export const useThemeStore = defineStore('theme', () => {
           author: t.author,
           description: t.description,
           builtin: false,
+          variant: t.variant || 'dark',  // default custom themes to dark
         }))
 
         // If saved theme is a custom theme, validate it still exists
@@ -159,6 +180,8 @@ export const useThemeStore = defineStore('theme', () => {
     currentTheme,
     customThemes,
     allThemes,
+    darkThemes,
+    lightThemes,
     currentMeta,
     isDark,
     init,

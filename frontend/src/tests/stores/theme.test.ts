@@ -73,10 +73,13 @@ describe('theme store', () => {
     expect(store.currentTheme).toBe('cyberpunk')
   })
 
-  it('lists 3 built-in themes', () => {
+  it('lists 9 built-in themes', () => {
     const store = useThemeStore()
-    expect(store.allThemes).toHaveLength(3)
-    expect(store.allThemes.map(t => t.id)).toEqual(['cyberpunk', 'dark', 'light'])
+    expect(store.allThemes).toHaveLength(9)
+    expect(store.allThemes.map(t => t.id)).toEqual([
+      'cyberpunk', 'dark', 'midnight', 'hacker', 'neon',
+      'light', 'paper', 'arctic', 'solarized',
+    ])
   })
 
   it('all built-in themes are marked builtin: true', () => {

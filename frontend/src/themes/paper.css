@@ -1,0 +1,40 @@
+/* media.rip() — Paper Theme
+ *
+ * Warm cream and sepia tones. Book-like reading feel.
+ * Soft, easy on the eyes in bright environments.
+ */
+
+:root[data-theme="paper"] {
+  --color-bg: #f5f0e8;
+  --color-surface: #fffdf7;
+  --color-surface-hover: #f0ebe0;
+  --color-border: #d6cebf;
+
+  --color-text: #2c2416;
+  --color-text-muted: #7a705e;
+
+  --color-accent: #b85c38;
+  --color-accent-hover: #a04e2e;
+  --color-accent-secondary: #2e6b5e;
+
+  --color-success: #3a7d44;
+  --color-warning: #c48a1a;
+  --color-error: #b83838;
+
+  --font-ui: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
+  --font-display: 'Georgia', 'Palatino Linotype', 'Book Antiqua', serif;
+
+  --effect-scanlines: none;
+  --effect-grid: none;
+  --effect-grid-size: 0px 0px;
+  --effect-glow: none;
+
+  --shadow-sm: 0 1px 2px rgba(44, 36, 22, 0.06);
+  --shadow-md: 0 3px 8px rgba(44, 36, 22, 0.08);
+  --shadow-lg: 0 8px 20px rgba(44, 36, 22, 0.1);
+  --shadow-glow: none;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
