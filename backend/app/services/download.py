@@ -541,6 +541,20 @@ class DownloadService:
         return any(domain in url_lower for domain in audio_domains)
 
     @staticmethod
+    def _get_auth_hint(url: str) -> str | None:
+        """Return a user-facing hint for sites that commonly need auth."""
+        url_lower = url.lower()
+        if "instagram.com" in url_lower:
+            return "Instagram requires login. Upload a cookies.txt from a logged-in browser session."
+        if "twitter.com" in url_lower or "x.com" in url_lower:
+            return "Twitter/X often requires login for video. Try uploading a cookies.txt file."
+        if "tiktok.com" in url_lower:
+            return "TikTok may block server IPs. Try uploading a cookies.txt file."
+        if "facebook.com" in url_lower or "fb.watch" in url_lower:
+            return "Facebook requires login for most videos. Upload a cookies.txt file."
+        return None
+
+    @staticmethod
     def _guess_ext_from_url(url: str, is_audio: bool) -> str:
         """Guess the likely output extension based on the source URL."""
         url_lower = url.lower()
@@ -565,7 +579,15 @@ class DownloadService:
             url,
         )
         if not info:
-            return {"type": "unknown", "title": None, "entries": [], "is_audio_only": False}
+            # Provide site-specific hints for known auth-required platforms
+            hint = self._get_auth_hint(url)
+            return {
+                "type": "unknown",
+                "title": None,
+                "entries": [],
+                "is_audio_only": False,
+                "hint": hint,
+            }
 
         # Domain-based audio detection (more reliable than format sniffing)
         domain_audio = self._is_audio_only_source(url)
@@ -577,7 +599,13 @@ class DownloadService:
             unavailable_count = 0
             for e in entries_raw:
                 if isinstance(e, dict):
-                    title = e.get("title") or e.get("id", "Unknown")
+                    title = e.get("title")
+                    if not title:
+                        # Derive readable name from URL slug when title is absent
+                        # (common in extract_flat mode for SoundCloud, etc.)
+                        entry_url = e.get("url") or e.get("webpage_url", "")
+                        slug = entry_url.rstrip("/").rsplit("/", 1)[-1] if entry_url else ""
+                        title = slug.replace("-", " ").title() if slug else e.get("id", "Unknown")
                     # Detect private/unavailable entries
                     if title in ("[Private video]", "[Deleted video]", "[Unavailable]"):
                         unavailable_count += 1
