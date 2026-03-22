@@ -26,14 +26,14 @@ ADMIN_WRITABLE_KEYS = {
     "default_video_format",
     "default_audio_format",
     "privacy_mode",
-    "privacy_retention_hours",
+    "privacy_retention_minutes",
     "max_concurrent",
     "session_mode",
     "session_timeout_hours",
     "admin_username",
     "admin_password_hash",
     "purge_enabled",
-    "purge_max_age_hours",
+    "purge_max_age_minutes",
 }
 
 
@@ -104,12 +104,12 @@ def apply_persisted_to_config(config, settings: dict) -> None:
         config.admin.password_hash = settings["admin_password_hash"]
     if "purge_enabled" in settings:
         config.purge.enabled = settings["purge_enabled"]
-    if "purge_max_age_hours" in settings:
-        config.purge.max_age_hours = settings["purge_max_age_hours"]
+    if "purge_max_age_minutes" in settings:
+        config.purge.max_age_minutes = settings["purge_max_age_minutes"]
     if "privacy_mode" in settings:
         config.purge.privacy_mode = settings["privacy_mode"]
-    if "privacy_retention_hours" in settings:
-        config.purge.privacy_retention_hours = settings["privacy_retention_hours"]
+    if "privacy_retention_minutes" in settings:
+        config.purge.privacy_retention_minutes = settings["privacy_retention_minutes"]
 
     logger.info("Applied %d persisted settings to config", len(settings))
 
@@ -123,7 +123,7 @@ def _deserialize(key: str, raw: str) -> object:
 
     # Type coercion for known keys
     bool_keys = {"privacy_mode", "purge_enabled"}
-    int_keys = {"max_concurrent", "session_timeout_hours", "purge_max_age_hours", "privacy_retention_hours"}
+    int_keys = {"max_concurrent", "session_timeout_hours", "purge_max_age_minutes", "privacy_retention_minutes"}
 
     if key in bool_keys:
         return bool(value)

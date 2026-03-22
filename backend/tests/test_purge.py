@@ -42,7 +42,7 @@ class TestPurge:
     async def test_purge_deletes_old_completed_jobs(self, db, tmp_path):
         config = AppConfig(
             downloads={"output_dir": str(tmp_path)},
-            purge={"max_age_hours": 24},
+            purge={"max_age_minutes": 1440},
         )
         sid = str(uuid.uuid4())
 
@@ -57,7 +57,7 @@ class TestPurge:
     async def test_purge_skips_recent_completed(self, db, tmp_path):
         config = AppConfig(
             downloads={"output_dir": str(tmp_path)},
-            purge={"max_age_hours": 24},
+            purge={"max_age_minutes": 1440},
         )
         sid = str(uuid.uuid4())
 
@@ -72,7 +72,7 @@ class TestPurge:
     async def test_purge_skips_active_jobs(self, db, tmp_path):
         config = AppConfig(
             downloads={"output_dir": str(tmp_path)},
-            purge={"max_age_hours": 0},  # purge everything terminal
+            purge={"max_age_minutes": 0},  # purge everything terminal
         )
         sid = str(uuid.uuid4())
 
@@ -88,7 +88,7 @@ class TestPurge:
     async def test_purge_deletes_files(self, db, tmp_path):
         config = AppConfig(
             downloads={"output_dir": str(tmp_path)},
-            purge={"max_age_hours": 0},
+            purge={"max_age_minutes": 0},
         )
         sid = str(uuid.uuid4())
 
@@ -107,7 +107,7 @@ class TestPurge:
     async def test_purge_handles_missing_files(self, db, tmp_path):
         config = AppConfig(
             downloads={"output_dir": str(tmp_path)},
-            purge={"max_age_hours": 0},
+            purge={"max_age_minutes": 0},
         )
         sid = str(uuid.uuid4())
 
@@ -123,7 +123,7 @@ class TestPurge:
     async def test_purge_mixed_statuses(self, db, tmp_path):
         config = AppConfig(
             downloads={"output_dir": str(tmp_path)},
-            purge={"max_age_hours": 0},
+            purge={"max_age_minutes": 0},
         )
         sid = str(uuid.uuid4())
 

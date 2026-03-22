@@ -42,12 +42,12 @@ async def run_purge(
         privacy_on = overrides.get("privacy_mode", config.purge.privacy_mode)
         if privacy_on:
             retention = overrides.get(
-                "privacy_retention_hours", config.purge.privacy_retention_hours
+                "privacy_retention_minutes", config.purge.privacy_retention_minutes
             )
         else:
-            retention = config.purge.max_age_hours
-        cutoff = (datetime.now(timezone.utc) - timedelta(hours=retention)).isoformat()
-        logger.info("Purge starting: retention=%dh (privacy=%s), cutoff=%s", retention, privacy_on, cutoff)
+            retention = config.purge.max_age_minutes
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=retention)).isoformat()
+        logger.info("Purge starting: retention=%dm (privacy=%s), cutoff=%s", retention, privacy_on, cutoff)
 
     output_dir = Path(config.downloads.output_dir)
 

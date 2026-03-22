@@ -34,7 +34,7 @@ describe('config store', () => {
       default_video_format: 'auto',
       default_audio_format: 'auto',
       privacy_mode: false,
-      privacy_retention_hours: 24,
+      privacy_retention_minutes: 1440,
       admin_enabled: true,
       admin_setup_complete: false,
     }

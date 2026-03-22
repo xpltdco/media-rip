@@ -76,7 +76,7 @@ export interface PublicConfig {
   default_video_format: string
   default_audio_format: string
   privacy_mode: boolean
-  privacy_retention_hours: number
+  privacy_retention_minutes: number
   admin_enabled: boolean
   admin_setup_complete: boolean
 }

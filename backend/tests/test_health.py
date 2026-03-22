@@ -173,7 +173,7 @@ class TestPublicConfig:
         data = resp.json()
         assert data["session_mode"] == "isolated"
         assert data["default_theme"] == "dark"
-        assert data["purge_enabled"] is False
+        assert data["purge_enabled"] is True
         assert data["max_concurrent_downloads"] == 3
 
 
