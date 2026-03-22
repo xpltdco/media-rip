@@ -34,6 +34,7 @@ ADMIN_WRITABLE_KEYS = {
     "admin_password_hash",
     "purge_enabled",
     "purge_max_age_minutes",
+    "api_key",
 }
 
 
@@ -110,6 +111,8 @@ def apply_persisted_to_config(config, settings: dict) -> None:
         config.purge.privacy_mode = settings["privacy_mode"]
     if "privacy_retention_minutes" in settings:
         config.purge.privacy_retention_minutes = settings["privacy_retention_minutes"]
+    if "api_key" in settings:
+        config.server.api_key = settings["api_key"]
 
     logger.info("Applied %d persisted settings to config", len(settings))
 

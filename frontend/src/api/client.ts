@@ -24,6 +24,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
       ...options?.headers,
     },
   })

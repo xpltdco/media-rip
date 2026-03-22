@@ -4,6 +4,9 @@
 .claude/
 .bg-shell/
 .planning/
+DEPLOY-TEST-PROMPT.md
+PROJECT.md
+Caddyfile.example
 .DS_Store
 Thumbs.db
 *.swp

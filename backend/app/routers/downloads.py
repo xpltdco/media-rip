@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 import os
 
+import secrets
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
@@ -22,6 +24,42 @@ logger = logging.getLogger("mediarip.api.downloads")
 router = APIRouter(tags=["downloads"])
 
 
+def _check_api_access(request: Request) -> None:
+    """Verify the caller is a browser user or has a valid API key.
+
+    When no API key is configured, all requests are allowed (open access).
+    When an API key is set:
+      - Requests with a valid X-API-Key header pass.
+      - Requests from the web UI pass (have a Referer from the same origin
+        or an X-Requested-With header set by the frontend).
+      - All other requests are rejected with 403.
+    """
+    config = request.app.state.config
+    api_key = config.server.api_key
+
+    if not api_key:
+        return  # No key configured — open access
+
+    # Check API key header
+    provided_key = request.headers.get("x-api-key", "")
+    if provided_key and secrets.compare_digest(provided_key, api_key):
+        return
+
+    # Check browser origin — frontend sends X-Requested-With: XMLHttpRequest
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return
+
+    raise_api_key_required()
+
+
+def raise_api_key_required():
+    from fastapi import HTTPException
+    raise HTTPException(
+        status_code=403,
+        detail="API key required. Provide X-API-Key header or use the web UI.",
+    )
+
+
 @router.post("/downloads", response_model=Job, status_code=201)
 async def create_download(
     job_create: JobCreate,
@@ -29,6 +67,7 @@ async def create_download(
     session_id: str = Depends(get_session_id),
 ) -> Job:
     """Submit a URL for download."""
+    _check_api_access(request)
     logger.debug("POST /downloads session=%s url=%s", session_id, job_create.url)
     download_service = request.app.state.download_service
     job = await download_service.enqueue(job_create, session_id)
