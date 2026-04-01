@@ -562,6 +562,31 @@ class DownloadService:
         return any(domain in url_lower for domain in audio_domains)
 
     @staticmethod
+    def _url_or_ext_implies_video(url: str, ext: str | None) -> bool:
+        """Return True if the URL path or reported extension is a known video container.
+
+        This acts as a fallback when yt-dlp's extract_flat mode strips codec
+        metadata (common for archive.org, direct-file URLs, etc.), which would
+        otherwise cause the UI to wrongly label the source as "audio only".
+        """
+        video_extensions = {
+            "mp4", "mkv", "webm", "avi", "mov", "flv", "wmv", "mpg",
+            "mpeg", "m4v", "ts", "3gp", "ogv",
+        }
+        # Check the extension reported by yt-dlp
+        if ext and ext.lower() in video_extensions:
+            return True
+        # Check the URL path for a video file extension
+        from urllib.parse import urlparse
+        path = urlparse(url).path.lower()
+        # Strip any trailing slashes / query residue
+        path = path.rstrip("/")
+        for vext in video_extensions:
+            if path.endswith(f".{vext}"):
+                return True
+        return False
+
+    @staticmethod
     def _get_auth_hint(url: str) -> str | None:
         """Return a user-facing hint for sites that commonly need auth."""
         url_lower = url.lower()
@@ -645,13 +670,27 @@ class DownloadService:
                         "url": e.get("url") or e.get("webpage_url", ""),
                         "duration": e.get("duration"),
                     })
+            # Domain-based detection may miss video playlists on generic
+            # hosting sites (e.g. archive.org).  If any entry URL looks like
+            # a video file, override domain_audio for the whole playlist.
+            playlist_audio = domain_audio
+            if playlist_audio:
+                for e_check in entries:
+                    entry_url = e_check.get("url", "")
+                    if self._url_or_ext_implies_video(entry_url, None):
+                        playlist_audio = False
+                        break
+            if not playlist_audio and not domain_audio:
+                # Also check the top-level URL itself
+                if self._url_or_ext_implies_video(url, info.get("ext")):
+                    playlist_audio = False
             result = {
                 "type": "playlist",
                 "title": info.get("title", "Playlist"),
                 "count": len(entries),
                 "entries": entries,
-                "is_audio_only": domain_audio,
-                "default_ext": self._guess_ext_from_url(url, domain_audio),
+                "is_audio_only": playlist_audio,
+                "default_ext": self._guess_ext_from_url(url, playlist_audio),
             }
             if unavailable_count > 0:
                 result["unavailable_count"] = unavailable_count
@@ -659,6 +698,11 @@ class DownloadService:
         else:
             # Single video/track
             has_video = bool(info.get("vcodec") and info["vcodec"] != "none")
+            # extract_flat mode often strips codec info, so also check the
+            # URL extension and the reported ext — if either is a known video
+            # container we should NOT mark it as audio-only.
+            if not has_video:
+                has_video = self._url_or_ext_implies_video(url, info.get("ext"))
             is_audio_only = domain_audio or not has_video
             # Detect likely file extension
             ext = info.get("ext")
