@@ -91,6 +91,8 @@ async def init_db(db_path: str) -> aiosqlite.Connection:
     PRAGMA order matters:
       1. ``busy_timeout`` — prevents immediate ``SQLITE_BUSY`` on lock contention
       2. ``journal_mode=WAL`` — enables concurrent readers + single writer
+         (falls back to DELETE on filesystems that lack shared-memory support,
+         e.g. CIFS/SMB mounts)
       3. ``synchronous=NORMAL`` — safe durability level for WAL mode
 
     Returns the ready-to-use connection.
@@ -100,9 +102,32 @@ async def init_db(db_path: str) -> aiosqlite.Connection:
 
     # --- PRAGMAs (before any DDL) ---
     await db.execute("PRAGMA busy_timeout = 5000")
-    result = await db.execute("PRAGMA journal_mode = WAL")
-    row = await result.fetchone()
-    journal_mode = row[0] if row else "unknown"
+
+    # Attempt WAL mode; if the underlying filesystem doesn't support the
+    # shared-memory primitives WAL requires (CIFS, NFS, some FUSE mounts),
+    # the PRAGMA silently stays on the previous mode or returns an error.
+    # In that case, fall back to DELETE mode which works everywhere.
+    try:
+        result = await db.execute("PRAGMA journal_mode = WAL")
+        row = await result.fetchone()
+        journal_mode = row[0] if row else "unknown"
+    except Exception:
+        journal_mode = "error"
+
+    if journal_mode != "wal":
+        logger.warning(
+            "WAL mode unavailable (got %s) — falling back to DELETE mode "
+            "(network/CIFS filesystem?)",
+            journal_mode,
+        )
+        try:
+            result = await db.execute("PRAGMA journal_mode = DELETE")
+            row = await result.fetchone()
+            journal_mode = row[0] if row else "unknown"
+        except Exception:
+            logger.warning("Failed to set DELETE journal mode, continuing with default")
+            journal_mode = "default"
+
     logger.info("journal_mode set to %s", journal_mode)
 
     await db.execute("PRAGMA synchronous = NORMAL")
