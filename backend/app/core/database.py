@@ -1,8 +1,10 @@
-"""SQLite database layer with WAL mode and async CRUD operations.
+"""SQLite database layer with async CRUD operations.
 
 Uses aiosqlite for async access.  ``init_db`` sets critical PRAGMAs
-(busy_timeout, WAL, synchronous) *before* creating any tables so that
-concurrent download workers never hit ``SQLITE_BUSY``.
+(busy_timeout, journal_mode, synchronous) *before* creating any tables so
+that concurrent download workers never hit ``SQLITE_BUSY``.  WAL mode is
+preferred on local filesystems; DELETE mode is used automatically when a
+network filesystem (CIFS, NFS) is detected.
 """
 
 from __future__ import annotations
@@ -90,49 +92,30 @@ async def init_db(db_path: str) -> aiosqlite.Connection:
 
     PRAGMA order matters:
       1. ``busy_timeout`` — prevents immediate ``SQLITE_BUSY`` on lock contention
-      2. ``journal_mode=WAL`` — enables concurrent readers + single writer
-         (falls back to DELETE on filesystems that lack shared-memory support,
-         e.g. CIFS/SMB mounts)
-      3. ``synchronous=NORMAL`` — safe durability level for WAL mode
+      2. ``journal_mode`` — WAL for local filesystems, DELETE for network mounts
+         (CIFS/NFS lack the shared-memory primitives WAL requires)
+      3. ``synchronous=NORMAL`` — safe durability level
 
     Returns the ready-to-use connection.
     """
+    # Detect network filesystem *before* opening the DB so we never attempt
+    # WAL on CIFS/NFS (which creates broken SHM files that persist).
+    use_wal = not _is_network_filesystem(db_path)
+
     db = await aiosqlite.connect(db_path)
     db.row_factory = aiosqlite.Row
 
     # --- PRAGMAs (before any DDL) ---
     await db.execute("PRAGMA busy_timeout = 5000")
 
-    # Attempt WAL mode, then verify it actually works by doing a test write.
-    # On CIFS/NFS/FUSE mounts WAL's shared-memory primitives silently fail
-    # even though the PRAGMA returns "wal".  A concrete write attempt is the
-    # only reliable way to detect this.
-    journal_mode = await _try_journal_mode(db, "wal")
-
-    if journal_mode == "wal":
-        try:
-            # Probe with an actual write — WAL on CIFS explodes here
-            await db.execute(
-                "CREATE TABLE IF NOT EXISTS _wal_probe (_x INTEGER)"
-            )
-            await db.execute("DROP TABLE IF EXISTS _wal_probe")
-            await db.commit()
-        except Exception:
-            logger.warning(
-                "WAL mode set but write failed — filesystem likely lacks "
-                "shared-memory support (CIFS/NFS?). Switching to DELETE mode."
-            )
-            # Close and reopen so SQLite drops the broken WAL state
-            await db.close()
-            # Remove stale WAL/SHM files that the broken open left behind
-            import pathlib
-            for suffix in ("-wal", "-shm"):
-                p = pathlib.Path(db_path + suffix)
-                p.unlink(missing_ok=True)
-            db = await aiosqlite.connect(db_path)
-            db.row_factory = aiosqlite.Row
-            await db.execute("PRAGMA busy_timeout = 5000")
-            journal_mode = await _try_journal_mode(db, "delete")
+    if use_wal:
+        journal_mode = await _try_journal_mode(db, "wal")
+    else:
+        logger.info(
+            "Network filesystem detected for %s — using DELETE journal mode",
+            db_path,
+        )
+        journal_mode = await _try_journal_mode(db, "delete")
 
     logger.info("journal_mode set to %s", journal_mode)
 
@@ -146,6 +129,41 @@ async def init_db(db_path: str) -> aiosqlite.Connection:
     return db
 
 
+def _is_network_filesystem(db_path: str) -> bool:
+    """Return True if *db_path* resides on a network filesystem (CIFS, NFS, etc.).
+
+    Parses ``/proc/mounts`` (Linux) to find the filesystem type of the
+    longest-prefix mount matching the database directory.  Returns False
+    on non-Linux hosts or if detection fails.
+    """
+    import os
+
+    network_fs_types = {"cifs", "nfs", "nfs4", "smb", "smbfs", "9p", "fuse.sshfs"}
+    try:
+        db_dir = os.path.dirname(os.path.abspath(db_path))
+        with open("/proc/mounts", "r") as f:
+            mounts = f.readlines()
+        best_match = ""
+        best_fstype = ""
+        for line in mounts:
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            mountpoint, fstype = parts[1], parts[2]
+            if db_dir.startswith(mountpoint) and len(mountpoint) > len(best_match):
+                best_match = mountpoint
+                best_fstype = fstype
+        is_net = best_fstype in network_fs_types
+        if is_net:
+            logger.info(
+                "Detected %s filesystem at %s for database %s",
+                best_fstype, best_match, db_path,
+            )
+        return is_net
+    except Exception:
+        return False
+
+
 async def _try_journal_mode(
     db: aiosqlite.Connection, mode: str,
 ) -> str:
@@ -157,15 +175,6 @@ async def _try_journal_mode(
     except Exception as exc:
         logger.warning("PRAGMA journal_mode=%s failed: %s", mode, exc)
         return "error"
-
-    await db.execute("PRAGMA synchronous = NORMAL")
-
-    # --- Schema ---
-    await db.executescript(_TABLES)
-    await db.executescript(_INDEXES)
-    logger.info("Database tables and indexes created at %s", db_path)
-
-    return db
 
 
 # ---------------------------------------------------------------------------
