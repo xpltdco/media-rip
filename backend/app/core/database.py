@@ -103,32 +103,60 @@ async def init_db(db_path: str) -> aiosqlite.Connection:
     # --- PRAGMAs (before any DDL) ---
     await db.execute("PRAGMA busy_timeout = 5000")
 
-    # Attempt WAL mode; if the underlying filesystem doesn't support the
-    # shared-memory primitives WAL requires (CIFS, NFS, some FUSE mounts),
-    # the PRAGMA silently stays on the previous mode or returns an error.
-    # In that case, fall back to DELETE mode which works everywhere.
-    try:
-        result = await db.execute("PRAGMA journal_mode = WAL")
-        row = await result.fetchone()
-        journal_mode = row[0] if row else "unknown"
-    except Exception:
-        journal_mode = "error"
+    # Attempt WAL mode, then verify it actually works by doing a test write.
+    # On CIFS/NFS/FUSE mounts WAL's shared-memory primitives silently fail
+    # even though the PRAGMA returns "wal".  A concrete write attempt is the
+    # only reliable way to detect this.
+    journal_mode = await _try_journal_mode(db, "wal")
 
-    if journal_mode != "wal":
-        logger.warning(
-            "WAL mode unavailable (got %s) — falling back to DELETE mode "
-            "(network/CIFS filesystem?)",
-            journal_mode,
-        )
+    if journal_mode == "wal":
         try:
-            result = await db.execute("PRAGMA journal_mode = DELETE")
-            row = await result.fetchone()
-            journal_mode = row[0] if row else "unknown"
+            # Probe with an actual write — WAL on CIFS explodes here
+            await db.execute(
+                "CREATE TABLE IF NOT EXISTS _wal_probe (_x INTEGER)"
+            )
+            await db.execute("DROP TABLE IF EXISTS _wal_probe")
+            await db.commit()
         except Exception:
-            logger.warning("Failed to set DELETE journal mode, continuing with default")
-            journal_mode = "default"
+            logger.warning(
+                "WAL mode set but write failed — filesystem likely lacks "
+                "shared-memory support (CIFS/NFS?). Switching to DELETE mode."
+            )
+            # Close and reopen so SQLite drops the broken WAL state
+            await db.close()
+            # Remove stale WAL/SHM files that the broken open left behind
+            import pathlib
+            for suffix in ("-wal", "-shm"):
+                p = pathlib.Path(db_path + suffix)
+                p.unlink(missing_ok=True)
+            db = await aiosqlite.connect(db_path)
+            db.row_factory = aiosqlite.Row
+            await db.execute("PRAGMA busy_timeout = 5000")
+            journal_mode = await _try_journal_mode(db, "delete")
 
     logger.info("journal_mode set to %s", journal_mode)
+
+    await db.execute("PRAGMA synchronous = NORMAL")
+
+    # --- Schema ---
+    await db.executescript(_TABLES)
+    await db.executescript(_INDEXES)
+    logger.info("Database tables and indexes created at %s", db_path)
+
+    return db
+
+
+async def _try_journal_mode(
+    db: aiosqlite.Connection, mode: str,
+) -> str:
+    """Try setting *mode* and return the actual journal mode string."""
+    try:
+        result = await db.execute(f"PRAGMA journal_mode = {mode}")
+        row = await result.fetchone()
+        return (row[0] if row else "unknown").lower()
+    except Exception as exc:
+        logger.warning("PRAGMA journal_mode=%s failed: %s", mode, exc)
+        return "error"
 
     await db.execute("PRAGMA synchronous = NORMAL")
 
